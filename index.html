@@ -27,7 +27,7 @@ h1,h2,h3,.display{font-family:'Fraunces',serif;}
 /* ===== AUTH ===== */
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
 .auth-box{background:var(--bg-card);border-radius:24px;padding:36px 24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(44,62,50,.12);}
-.auth-box h1{font-size:22px;font-weight:700;color:var(--forest);margin-bottom:6px;line-height:1.3;white-space:nowrap;}
+.auth-box h1{font-size:23px;font-weight:700;color:var(--forest);margin-bottom:6px;line-height:1.35;}
 .auth-box p.sub{color:var(--ink-soft);font-size:14px;margin-bottom:24px;line-height:1.5;}
 input,select,textarea{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:15px;background:#fff;color:var(--ink);margin-bottom:12px;}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--forest);}
@@ -106,7 +106,7 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
 <!-- AUTH -->
 <div id="authScreen" class="auth-wrap">
   <div class="auth-box">
-    <h1>📋 Meu Organizador</h1>
+    <h1>📋 Meu Organizador Pessoal</h1>
     <p class="sub" id="authSub">Listas, consultas e receitas — tudo num só lugar.</p>
     <div id="loginForm">
       <div id="loginErr" class="err hidden"></div>
@@ -155,7 +155,7 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
 <!-- APP -->
 <div id="app">
   <nav>
-    <div class="logo">📋 Meu Organizador</div>
+    <div class="logo">📋 Organizador Pessoal</div>
     <div style="display:flex;align-items:center;gap:10px">
       <button onclick="mostrarAvisos()" style="position:relative;padding:8px 12px;font-size:16px" title="Avisos">🔔<span id="avisoBadge" class="hidden" style="position:absolute;top:2px;right:2px;background:#B23A48;color:#fff;font-size:10px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center">!</span></button>
       <button onclick="abrirConfigConta()" style="font-size:13px" title="Minha conta">⚙️</button>
@@ -451,6 +451,7 @@ async function confirmarExcluirConta(){
   document.getElementById('app').style.display='none';
   document.getElementById('authScreen').style.display='flex';
   toggleAuth('login');
+  ['loginEmail','loginPass'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
   alert('Conta excluída. Obrigado por usar o app! 💜');
 }
 function entrarNoApp(){
@@ -473,7 +474,12 @@ let secaoAtual='listas';
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>secaoAtual=t.dataset.tab));
 function abrirCriar(){
   const ativa = document.querySelector('.tab.on').dataset.tab;
-  if(ativa==='listas') abrirModal('modalListaOverlay');
+  if(ativa==='listas'){
+    abrirModal('modalListaOverlay');
+    const campo = document.getElementById('novaListaNome');
+    campo.value = 'Lista de Tarefas';
+    setTimeout(()=>{ campo.focus(); campo.select(); }, 50);
+  }
   else if(ativa==='consultas') abrirModal('modalConsultaOverlay');
   else abrirModalReceita();
 }
@@ -578,8 +584,26 @@ async function verificarAvisosProximos(){
     banner.classList.add('hidden');
   }
 }
-function mostrarAvisos(){
+async function mostrarAvisos(){
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const daqui2dias = new Date(hoje); daqui2dias.setDate(hoje.getDate()+2);
+  const hojeStr = hoje.toISOString().split('T')[0];
+  const daqui2diasStr = daqui2dias.toISOString().split('T')[0];
+  const {data:proximas} = await sb.from('consultas').select('*')
+    .gte('data_consulta', hojeStr).lte('data_consulta', daqui2diasStr)
+    .eq('concluida', false).order('data_consulta');
   showSection('consultas');
+  if(!proximas || !proximas.length){
+    alert('🔔 Nenhum aviso no momento — sem consultas ou exames nos próximos 2 dias.');
+    return;
+  }
+  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const texto = proximas.map(p=>{
+    const d = new Date(p.data_consulta+'T00:00:00');
+    const ehHoje = p.data_consulta === hojeStr;
+    return `• ${p.especialidade} — ${ehHoje?'HOJE':d.getDate()+' de '+meses[d.getMonth()]}${p.horario?' às '+p.horario.slice(0,5):''}`;
+  }).join('\n');
+  alert('🔔 Avisos próximos:\n\n'+texto);
 }
 async function carregarConsultas(){
   const {data:consultas} = await sb.from('consultas').select('*').order('data_consulta');
@@ -594,8 +618,8 @@ async function carregarConsultas(){
     const d = new Date(c.data_consulta+'T00:00:00');
     const icone = iconesTipo[c.tipo] || '🩺';
     return `
-    <div class="card-item consulta-card" style="${c.concluida?'opacity:.5':''}">
-      <input type="checkbox" ${c.concluida?'checked':''} onchange="marcarConsultaConcluida('${c.id}',this.checked)" style="width:22px;height:22px;accent-color:var(--forest);flex-shrink:0;margin-top:4px"/>
+    <div class="card-item consulta-card" style="${c.concluida?'opacity:.55;background:rgba(0,0,0,.02)':''}">
+      <button onclick="marcarConsultaConcluida('${c.id}',${!c.concluida})" title="${c.concluida?'Marcar como pendente':'Marcar como concluído'}" style="background:none;border:2px solid ${c.concluida?'var(--forest)':'var(--line)'};border-radius:50%;width:26px;height:26px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--forest);padding:0">${c.concluida?'✓':''}</button>
       <div class="consulta-data">
         <div class="dia">${d.getDate()}</div>
         <div class="mes">${meses[d.getMonth()]}</div>
@@ -604,8 +628,9 @@ async function carregarConsultas(){
         <h3 style="${c.concluida?'text-decoration:line-through':''}">${icone} ${esc(c.especialidade)}</h3>
         <div class="meta">${c.medico?esc(c.medico)+' • ':''}${c.horario?c.horario.slice(0,5)+' • ':''}${esc(c.local||'')}</div>
         ${c.observacoes?`<div class="meta" style="margin-top:4px;font-style:italic">${esc(c.observacoes)}</div>`:''}
+        ${c.concluida?'<div class="meta" style="color:var(--forest);font-weight:600;margin-top:4px">✓ Concluído</div>':''}
       </div>
-      <button onclick="excluirConsulta('${c.id}')" style="background:none;border:none;color:#B23A48;font-size:18px;cursor:pointer">✕</button>
+      <button onclick="excluirConsulta('${c.id}')" style="background:none;border:none;color:#B23A48;font-size:18px;cursor:pointer;flex-shrink:0">✕</button>
     </div>`;
   }).join('');
 }
@@ -619,6 +644,8 @@ async function criarConsulta(){
   const especialidade = document.getElementById('consEspecialidade').value.trim();
   const data_consulta = document.getElementById('consData').value;
   if(!especialidade || !data_consulta){ alert('Preencha especialidade/nome e data.'); return; }
+  const hojeStr = new Date().toISOString().split('T')[0];
+  if(data_consulta < hojeStr){ alert('Essa data já passou! Escolhe uma data de hoje em diante.'); return; }
   const {error} = await sb.from('consultas').insert({
     user_id: me.id, especialidade,
     tipo: document.getElementById('consTipo').value,
