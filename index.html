@@ -26,8 +26,8 @@ h1,h2,h3,.display{font-family:'Fraunces',serif;}
 
 /* ===== AUTH ===== */
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
-.auth-box{background:var(--bg-card);border-radius:24px;padding:40px 32px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(44,62,50,.12);}
-.auth-box h1{font-size:26px;font-weight:700;color:var(--forest);margin-bottom:6px;line-height:1.25;}
+.auth-box{background:var(--bg-card);border-radius:24px;padding:36px 24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(44,62,50,.12);}
+.auth-box h1{font-size:22px;font-weight:700;color:var(--forest);margin-bottom:6px;line-height:1.3;white-space:nowrap;}
 .auth-box p.sub{color:var(--ink-soft);font-size:14px;margin-bottom:24px;line-height:1.5;}
 input,select,textarea{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:15px;background:#fff;color:var(--ink);margin-bottom:12px;}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--forest);}
@@ -106,21 +106,48 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
 <!-- AUTH -->
 <div id="authScreen" class="auth-wrap">
   <div class="auth-box">
-    <h1>📋 Meu Organizador Pessoal</h1>
-    <p class="sub" id="authSub">Listas, consultas e receitas, tudo num só lugar.</p>
+    <h1>📋 Meu Organizador</h1>
+    <p class="sub" id="authSub">Listas, consultas e receitas — tudo num só lugar.</p>
     <div id="loginForm">
       <div id="loginErr" class="err hidden"></div>
       <input type="email" id="loginEmail" placeholder="seu@email.com"/>
-      <input type="password" id="loginPass" placeholder="Senha"/>
+      <div style="position:relative">
+        <input type="password" id="loginPass" placeholder="Senha" style="padding-right:44px"/>
+        <button type="button" onclick="togglePwd('loginPass',this)" style="position:absolute;right:10px;top:11px;background:none;border:none;cursor:pointer;font-size:16px">👁️</button>
+      </div>
       <button class="btn" onclick="doLogin()">Entrar</button>
       <button class="link-btn" onclick="toggleAuth('signup')">Não tem conta? Criar agora</button>
+      <button class="link-btn" onclick="abrirEsqueciSenha()">Esqueci minha senha</button>
     </div>
     <div id="signupForm" class="hidden">
       <div id="signupErr" class="err hidden"></div>
       <input type="email" id="signupEmail" placeholder="seu@email.com"/>
-      <input type="password" id="signupPass" placeholder="Crie uma senha"/>
+      <div style="position:relative">
+        <input type="password" id="signupPass" placeholder="Crie uma senha (mín. 6 caracteres)" style="padding-right:44px"/>
+        <button type="button" onclick="togglePwd('signupPass',this)" style="position:absolute;right:10px;top:11px;background:none;border:none;cursor:pointer;font-size:16px">👁️</button>
+      </div>
       <button class="btn gold" onclick="doSignup()">Criar conta</button>
       <button class="link-btn" onclick="toggleAuth('login')">Já tem conta? Entrar</button>
+    </div>
+    <div id="codigoForm" class="hidden">
+      <p style="font-size:14px;color:var(--ink-soft);margin-bottom:14px;line-height:1.5">Enviamos um código pro seu e-mail (<strong id="codigoEmailMostrado"></strong>). Confere a caixa de entrada e o spam.</p>
+      <div id="codigoErr" class="err hidden"></div>
+      <input type="text" id="codigoInput" placeholder="Cole o código aqui" inputmode="numeric"/>
+      <button class="btn gold" onclick="confirmarCodigo()">Confirmar código</button>
+      <button class="link-btn" onclick="reenviarCodigo()">Reenviar código</button>
+    </div>
+    <div id="esqueciForm" class="hidden">
+      <p style="font-size:14px;color:var(--ink-soft);margin-bottom:14px;line-height:1.5">Digite seu e-mail — vamos mandar um link pra você criar uma senha nova.</p>
+      <div id="esqueciErr" class="err hidden"></div>
+      <input type="email" id="esqueciEmail" placeholder="seu@email.com"/>
+      <button class="btn" onclick="enviarRecuperacaoSenha()">Enviar link de recuperação</button>
+      <button class="link-btn" onclick="toggleAuth('login')">Voltar pro login</button>
+    </div>
+    <div id="novaSenhaForm" class="hidden">
+      <p style="font-size:14px;color:var(--ink-soft);margin-bottom:14px;line-height:1.5">Digite sua nova senha.</p>
+      <div id="novaSenhaErr" class="err hidden"></div>
+      <input type="password" id="novaSenhaInput" placeholder="Nova senha (mín. 6 caracteres)"/>
+      <button class="btn gold" onclick="salvarNovaSenha()">Salvar nova senha</button>
     </div>
   </div>
 </div>
@@ -128,9 +155,14 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
 <!-- APP -->
 <div id="app">
   <nav>
-    <div class="logo">📋 Meu Organizador Pessoal</div>
-    <button onclick="doLogout()">Sair</button>
+    <div class="logo">📋 Meu Organizador</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="mostrarAvisos()" style="position:relative;padding:8px 12px;font-size:16px" title="Avisos">🔔<span id="avisoBadge" class="hidden" style="position:absolute;top:2px;right:2px;background:#B23A48;color:#fff;font-size:10px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center">!</span></button>
+      <button onclick="abrirConfigConta()" style="font-size:13px" title="Minha conta">⚙️</button>
+      <button onclick="doLogout()">Sair</button>
+    </div>
   </nav>
+  <div id="avisoBanner" class="hidden" style="background:#C9971F;color:#2C1800;padding:10px 20px;text-align:center;font-size:13px;font-weight:600;cursor:pointer" onclick="showSection('consultas');document.getElementById('avisoBanner').classList.add('hidden')"></div>
   <div class="tabs">
     <div class="tab on" data-tab="listas" onclick="showSection('listas')">📝 Listas</div>
     <div class="tab" data-tab="consultas" onclick="showSection('consultas')">🩺 Saúde</div>
@@ -166,7 +198,7 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     <button class="close-x" onclick="fecharModal('modalListaOverlay')">✕</button>
     <h2>Nova lista</h2>
     <label>Nome da lista</label>
-    <input type="text" id="novaListaNome" placeholder="Ex: Compras do mês, Lembretes..."/>
+    <input type="text" id="novaListaNome" placeholder="Ex: Lista de Tarefas, Compras do mês..."/>
     <button class="btn" onclick="criarLista()">Criar lista</button>
   </div></div>
 </div>
@@ -202,7 +234,7 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     <label>Médico(a) / local do exame</label>
     <input type="text" id="consMedico" placeholder="Ex: Dr. João Silva"/>
     <label>Data *</label>
-    <input type="date" id="consData"/>
+    <input type="date" id="consData" onclick="this.min=new Date().toISOString().split('T')[0]"/>
     <label>Horário</label>
     <input type="time" id="consHorario"/>
     <label>Local</label>
@@ -244,6 +276,18 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
   </div></div>
 </div>
 
+<!-- MODAL: Minha Conta -->
+<div class="modal-overlay" id="modalContaOverlay" onclick="fecharModalSeForFundo(event,'modalContaOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalContaOverlay')">✕</button>
+    <h2>⚙️ Minha conta</h2>
+    <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Logada como:</p>
+    <p style="font-size:15px;font-weight:600;color:var(--forest);margin-bottom:24px" id="contaEmailAtual"></p>
+    <button class="btn ghost" style="color:#B23A48;border-color:#B23A48" onclick="confirmarExcluirConta()">🗑️ Excluir minha conta e todos os dados</button>
+    <p style="font-size:11px;color:var(--ink-soft);margin-top:8px">Isso apaga permanentemente suas listas, consultas e receitas. Não dá pra desfazer.</p>
+  </div></div>
+</div>
+
 <script>
 const SUPABASE_URL = 'https://ecxnzwyzfodrmxldddbc.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_5d0kuLDSLtKgaAqgkp9HjQ_GoPvq4qf';
@@ -256,17 +300,32 @@ let receitaAtualId = null;
 function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // ===== AUTH =====
+let emailPendente = '';
 function toggleAuth(qual){
-  document.getElementById('loginForm').classList.toggle('hidden', qual==='signup');
-  document.getElementById('signupForm').classList.toggle('hidden', qual==='login');
+  ['loginForm','signupForm','codigoForm','esqueciForm','novaSenhaForm'].forEach(id=>{
+    document.getElementById(id).classList.toggle('hidden', id!==qual+'Form');
+  });
+}
+function togglePwd(id, btn){
+  const el = document.getElementById(id);
+  const mostrando = el.type === 'text';
+  el.type = mostrando ? 'password' : 'text';
+  btn.textContent = mostrando ? '👁️' : '🙈';
 }
 async function doLogin(){
   const email = document.getElementById('loginEmail').value.trim();
   const pass = document.getElementById('loginPass').value;
   const errEl = document.getElementById('loginErr');
   errEl.classList.add('hidden');
+  if(!email || !pass){ errEl.textContent='Preencha e-mail e senha.'; errEl.classList.remove('hidden'); return; }
   const {data, error} = await sb.auth.signInWithPassword({email, password:pass});
-  if(error){ errEl.textContent = 'E-mail ou senha incorretos.'; errEl.classList.remove('hidden'); return; }
+  if(error){
+    const msg = error.message||'';
+    if(msg.includes('Invalid login credentials')) errEl.textContent = 'E-mail ou senha incorretos. Verifique e tente de novo.';
+    else if(msg.includes('Email not confirmed')) errEl.textContent = 'Confirme seu e-mail antes de entrar (verifique sua caixa de entrada).';
+    else errEl.textContent = 'Erro ao entrar: '+msg;
+    errEl.classList.remove('hidden'); return;
+  }
   me = data.user;
   entrarNoApp();
 }
@@ -275,31 +334,133 @@ async function doSignup(){
   const pass = document.getElementById('signupPass').value;
   const errEl = document.getElementById('signupErr');
   errEl.classList.add('hidden');
-  if(!email || pass.length<6){ errEl.textContent='Preencha um e-mail válido e senha com 6+ caracteres.'; errEl.classList.remove('hidden'); return; }
+  if(!email || !email.includes('@')){ errEl.textContent='Digite um e-mail válido.'; errEl.classList.remove('hidden'); return; }
+  if(pass.length<6){ errEl.textContent='A senha precisa ter pelo menos 6 caracteres.'; errEl.classList.remove('hidden'); return; }
   const {data, error} = await sb.auth.signUp({email, password:pass});
+  if(error){
+    const msg = error.message||'';
+    if(msg.includes('already registered')||msg.includes('already exists')) errEl.textContent = 'Esse e-mail já tem uma conta. Tenta entrar em vez de criar.';
+    else errEl.textContent = msg;
+    errEl.classList.remove('hidden'); return;
+  }
+  // Se e-mail já tinha sido usado antes mas nunca confirmado, o Supabase retorna
+  // "sucesso" com uma lista de identities vazia — detecta esse caso também
+  if(data?.user && data.user.identities && data.user.identities.length===0){
+    errEl.textContent = 'Esse e-mail já tem uma conta. Tenta entrar, ou usa "Esqueci minha senha".';
+    errEl.classList.remove('hidden'); return;
+  }
+  if(data?.session){
+    // confirmação de e-mail desligada no projeto — já entra direto
+    me = data.session.user;
+    entrarNoApp();
+    return;
+  }
+  // Precisa confirmar por código
+  emailPendente = email;
+  document.getElementById('codigoEmailMostrado').textContent = email;
+  toggleAuth('codigo');
+}
+async function confirmarCodigo(){
+  const codigo = document.getElementById('codigoInput').value.trim();
+  const errEl = document.getElementById('codigoErr');
+  errEl.classList.add('hidden');
+  if(!codigo){ errEl.textContent='Digite o código que chegou no seu e-mail.'; errEl.classList.remove('hidden'); return; }
+  const {data, error} = await sb.auth.verifyOtp({email: emailPendente, token: codigo, type:'signup'});
+  if(error){
+    errEl.textContent = error.message.includes('expired') ? 'Código expirado. Pede um novo abaixo.' : 'Código incorreto. Confere e tenta de novo.';
+    errEl.classList.remove('hidden'); return;
+  }
+  if(data?.session){ me = data.session.user; entrarNoApp(); }
+}
+async function reenviarCodigo(){
+  const {error} = await sb.auth.resend({type:'signup', email: emailPendente});
+  const errEl = document.getElementById('codigoErr');
+  errEl.classList.remove('hidden');
+  errEl.style.color = error ? '#B23A48' : '#2C4A3B';
+  errEl.textContent = error ? error.message : 'Novo código enviado! Confere seu e-mail.';
+}
+function abrirEsqueciSenha(){
+  toggleAuth('esqueci');
+}
+async function enviarRecuperacaoSenha(){
+  const email = document.getElementById('esqueciEmail').value.trim();
+  const errEl = document.getElementById('esqueciErr');
+  errEl.classList.add('hidden');
+  if(!email){ errEl.textContent='Digite seu e-mail.'; errEl.classList.remove('hidden'); return; }
+  const {error} = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+  errEl.classList.remove('hidden');
+  errEl.style.color = error ? '#B23A48' : '#2C4A3B';
+  errEl.textContent = error ? error.message : 'Link enviado! Confere seu e-mail (e o spam) e clica nele pra criar uma senha nova.';
+}
+async function salvarNovaSenha(){
+  const novaSenha = document.getElementById('novaSenhaInput').value;
+  const errEl = document.getElementById('novaSenhaErr');
+  errEl.classList.add('hidden');
+  if(novaSenha.length<6){ errEl.textContent='A senha precisa ter pelo menos 6 caracteres.'; errEl.classList.remove('hidden'); return; }
+  const {error} = await sb.auth.updateUser({password: novaSenha});
   if(error){ errEl.textContent = error.message; errEl.classList.remove('hidden'); return; }
-  me = data.user;
-  entrarNoApp();
+  alert('Senha alterada com sucesso! Você já pode usar a conta normalmente.');
+  history.replaceState(null,'',window.location.pathname);
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){ me = session.user; entrarNoApp(); }
 }
 async function doLogout(){
   await sb.auth.signOut();
   me = null;
   document.getElementById('app').style.display='none';
   document.getElementById('authScreen').style.display='flex';
-  ['loginEmail','loginPass','signupEmail','signupPass'].forEach(id=>{
-    const el=document.getElementById(id); if(el)el.value='';
-  });
+  document.getElementById('loginPass').value='';
+  toggleAuth('login');
 }
 async function checarSessao(){
+  // Verifica se veio de um link de redefinição de senha
+  const hashParams = new URLSearchParams(window.location.hash.replace('#',''));
+  if(hashParams.get('type') === 'recovery'){
+    const {data:{session}} = await sb.auth.getSession();
+    if(session) me = session.user;
+    document.getElementById('authScreen').style.display='flex';
+    toggleAuth('novaSenha');
+    return;
+  }
   const {data:{session}} = await sb.auth.getSession();
   if(session){ me = session.user; entrarNoApp(); }
+}
+function abrirConfigConta(){
+  document.getElementById('contaEmailAtual').textContent = me?.email||'';
+  abrirModal('modalContaOverlay');
+}
+async function confirmarExcluirConta(){
+  if(!confirm('Isso vai apagar TODAS as suas listas, consultas e receitas, e seu login, permanentemente. Não dá pra desfazer. Tem certeza?')) return;
+  if(!confirm('Última confirmação: excluir sua conta de vez?')) return;
+  try{
+    await sb.rpc('excluir_minha_conta_organizador');
+    const {data:{session}} = await sb.auth.getSession();
+    const token = session?.access_token;
+    if(token){
+      await fetch(SUPABASE_URL+'/functions/v1/excluir-usuario-auth',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      }).catch(e=>console.warn('Erro ao apagar login (dados já foram apagados):',e));
+    }
+    await sb.auth.signOut();
+  }catch(e){
+    console.error('Erro ao excluir conta:', e);
+  }
+  me = null;
+  fecharModal('modalContaOverlay');
+  document.getElementById('app').style.display='none';
+  document.getElementById('authScreen').style.display='flex';
+  toggleAuth('login');
+  alert('Conta excluída. Obrigado por usar o app! 💜');
 }
 function entrarNoApp(){
   document.getElementById('authScreen').style.display='none';
   document.getElementById('app').style.display='block';
   carregarListas();
   carregarConsultas();
+  verificarAvisosProximos();
   carregarReceitas();
+  verificarAvisosProximos();
 }
 
 // ===== NAVEGAÇÃO =====
@@ -395,6 +556,31 @@ async function excluirListaAtual(){
 }
 
 // ===== CONSULTAS =====
+async function verificarAvisosProximos(){
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const daqui2dias = new Date(hoje); daqui2dias.setDate(hoje.getDate()+2);
+  const hojeStr = hoje.toISOString().split('T')[0];
+  const daqui2diasStr = daqui2dias.toISOString().split('T')[0];
+  const {data:proximas} = await sb.from('consultas').select('*')
+    .gte('data_consulta', hojeStr).lte('data_consulta', daqui2diasStr)
+    .eq('concluida', false).order('data_consulta');
+  const badge = document.getElementById('avisoBadge');
+  const banner = document.getElementById('avisoBanner');
+  if(proximas && proximas.length){
+    badge.classList.remove('hidden');
+    const p = proximas[0];
+    const d = new Date(p.data_consulta+'T00:00:00');
+    const ehHoje = p.data_consulta === hojeStr;
+    banner.textContent = `🔔 ${ehHoje?'Hoje':'Em breve'}: ${p.especialidade}${p.horario?' às '+p.horario.slice(0,5):''}${proximas.length>1?' (+'+(proximas.length-1)+' outro(s))':''} — toca pra ver`;
+    banner.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+    banner.classList.add('hidden');
+  }
+}
+function mostrarAvisos(){
+  showSection('consultas');
+}
 async function carregarConsultas(){
   const {data:consultas} = await sb.from('consultas').select('*').order('data_consulta');
   const cont = document.getElementById('consultasContainer');
@@ -427,6 +613,7 @@ async function marcarConsultaConcluida(id, concluida){
   const {error} = await sb.from('consultas').update({concluida}).eq('id', id);
   if(error){ console.error('Erro ao marcar consulta:', error); }
   carregarConsultas();
+  verificarAvisosProximos();
 }
 async function criarConsulta(){
   const especialidade = document.getElementById('consEspecialidade').value.trim();
@@ -445,11 +632,13 @@ async function criarConsulta(){
   ['consEspecialidade','consMedico','consData','consHorario','consLocal','consObs'].forEach(id=>document.getElementById(id).value='');
   fecharModal('modalConsultaOverlay');
   carregarConsultas();
+  verificarAvisosProximos();
 }
 async function excluirConsulta(id){
   if(!confirm('Excluir esta consulta?')) return;
   await sb.from('consultas').delete().eq('id', id);
   carregarConsultas();
+  verificarAvisosProximos();
 }
 
 // ===== RECEITAS =====
