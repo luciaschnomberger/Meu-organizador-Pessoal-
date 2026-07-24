@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Meu Organizador Pessoal</title>
+<link rel="manifest" href="/manifest.json"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#FBF3E7;
+  --bg-card:#FFFFFF;
+  --ink:#2C3E32;
+  --ink-soft:rgba(44,62,50,.6);
+  --forest:#2C4A3B;
+  --gold:#C9971F;
+  --plum:#6B2D5C;
+  --line:rgba(44,62,50,.12);
+  --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Work Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,.display{font-family:'Fraunces',serif;}
+.hidden{display:none!important;}
+
+/* ===== AUTH ===== */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.auth-box{background:var(--bg-card);border-radius:24px;padding:40px 32px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(44,62,50,.12);}
+.auth-box h1{font-size:32px;font-weight:700;color:var(--forest);margin-bottom:6px;}
+.auth-box p.sub{color:var(--ink-soft);font-size:14px;margin-bottom:24px;}
+input,select,textarea{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:15px;background:#fff;color:var(--ink);margin-bottom:12px;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--forest);}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;background:var(--forest);color:#fff;font-family:'Work Sans',sans-serif;font-weight:600;font-size:15px;cursor:pointer;transition:transform .15s;}
+.btn:hover{transform:translateY(-1px);}
+.btn.gold{background:var(--gold);color:#2C1800;}
+.btn.plum{background:var(--plum);}
+.btn.ghost{background:none;border:1.5px solid var(--line);color:var(--ink);}
+.link-btn{background:none;border:none;color:var(--forest);font-size:13px;cursor:pointer;text-decoration:underline;margin-top:14px;display:block;text-align:center;width:100%;font-family:inherit;}
+.err{color:#B23A48;font-size:13px;margin-bottom:10px;}
+
+/* ===== APP SHELL ===== */
+#app{display:none;min-height:100vh;}
+nav{background:var(--forest);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+nav .logo{color:#fff;font-family:'Fraunces',serif;font-size:20px;font-weight:600;}
+nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer;font-family:'Work Sans',sans-serif;}
+.tabs{display:flex;gap:8px;padding:16px 20px 0;max-width:720px;margin:0 auto;}
+.tab{flex:1;text-align:center;padding:12px 8px;border-radius:12px 12px 0 0;background:rgba(44,74,59,.06);color:var(--ink-soft);cursor:pointer;font-weight:600;font-size:14px;transition:all .2s;}
+.tab.on{background:var(--bg-card);color:var(--forest);}
+.content{max-width:720px;margin:0 auto;padding:20px;padding-bottom:80px;}
+.section{display:none;}
+.section.on{display:block;}
+
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.section-head h2{font-size:24px;color:var(--forest);}
+
+.card-item{background:var(--bg-card);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;box-shadow:0 2px 10px rgba(44,62,50,.06);}
+.empty-state{text-align:center;padding:60px 20px;color:var(--ink-soft);}
+.empty-state .emoji{font-size:48px;margin-bottom:12px;}
+
+/* Listas */
+.lista-card{cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+.lista-card .info h3{font-size:17px;color:var(--forest);margin-bottom:2px;}
+.lista-card .info span{font-size:12px;color:var(--ink-soft);}
+.item-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+.item-row:last-child{border-bottom:none;}
+.item-row input[type=checkbox]{width:20px;height:20px;margin:0;accent-color:var(--forest);flex-shrink:0;}
+.item-row span{flex:1;font-size:15px;}
+.item-row span.feito{text-decoration:line-through;color:var(--ink-soft);}
+.item-row button{background:none;border:none;color:#B23A48;font-size:18px;cursor:pointer;padding:4px 8px;}
+
+/* Consultas */
+.consulta-card{display:flex;gap:14px;align-items:flex-start;}
+.consulta-data{background:var(--forest);color:#fff;border-radius:12px;padding:10px 12px;text-align:center;min-width:60px;flex-shrink:0;}
+.consulta-data .dia{font-size:22px;font-weight:700;font-family:'Fraunces',serif;line-height:1;}
+.consulta-data .mes{font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+.consulta-info h3{font-size:16px;color:var(--forest);}
+.consulta-info .meta{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+
+/* Receitas */
+.receitas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
+.receita-card{background:var(--bg-card);border-radius:var(--radius);overflow:hidden;cursor:pointer;box-shadow:0 2px 10px rgba(44,62,50,.06);}
+.receita-card .foto{width:100%;height:110px;background:linear-gradient(135deg,var(--forest),var(--plum));display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;}
+.receita-card .foto img{width:100%;height:100%;object-fit:cover;}
+.receita-card .info{padding:10px 12px;}
+.receita-card h3{font-size:14px;color:var(--forest);}
+.receita-card .meta{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+
+.fab{position:fixed;bottom:24px;right:24px;width:58px;height:58px;border-radius:50%;background:var(--gold);color:#2C1800;border:none;font-size:28px;cursor:pointer;box-shadow:0 8px 24px rgba(201,151,31,.4);z-index:40;}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(44,62,50,.5);z-index:100;align-items:flex-end;justify-content:center;}
+.modal-overlay.on{display:flex;}
+.modal{background:var(--bg-card);border-radius:24px 24px 0 0;max-width:480px;width:100%;max-height:88vh;overflow-y:auto;padding:26px 22px 30px;}
+.modal h2{color:var(--forest);font-size:22px;margin-bottom:16px;}
+.modal label{font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
+.close-x{position:absolute;top:16px;right:20px;background:none;border:none;font-size:22px;color:var(--ink-soft);cursor:pointer;}
+.modal-inner{position:relative;}
+.ing-row{display:flex;gap:8px;margin-bottom:8px;}
+.ing-row input{margin-bottom:0;}
+.ing-row button{background:none;border:none;color:#B23A48;font-size:20px;cursor:pointer;flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="authScreen" class="auth-wrap">
+  <div class="auth-box">
+    <h1>📋 Meu Organizador Pessoal</h1>
+    <p class="sub" id="authSub">Listas, consultas e receitas, tudo num só lugar.</p>
+    <div id="loginForm">
+      <div id="loginErr" class="err hidden"></div>
+      <input type="email" id="loginEmail" placeholder="seu@email.com"/>
+      <input type="password" id="loginPass" placeholder="Senha"/>
+      <button class="btn" onclick="doLogin()">Entrar</button>
+      <button class="link-btn" onclick="toggleAuth('signup')">Não tem conta? Criar agora</button>
+    </div>
+    <div id="signupForm" class="hidden">
+      <div id="signupErr" class="err hidden"></div>
+      <input type="email" id="signupEmail" placeholder="seu@email.com"/>
+      <input type="password" id="signupPass" placeholder="Crie uma senha"/>
+      <button class="btn gold" onclick="doSignup()">Criar conta</button>
+      <button class="link-btn" onclick="toggleAuth('login')">Já tem conta? Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav>
+    <div class="logo">📋 Meu Organizador Pessoal</div>
+    <button onclick="doLogout()">Sair</button>
+  </nav>
+  <div class="tabs">
+    <div class="tab on" data-tab="listas" onclick="showSection('listas')">📝 Listas</div>
+    <div class="tab" data-tab="consultas" onclick="showSection('consultas')">🩺 Saúde</div>
+    <div class="tab" data-tab="receitas" onclick="showSection('receitas')">🍲 Receitas</div>
+  </div>
+
+  <div class="content">
+    <!-- LISTAS -->
+    <div class="section on" id="sec-listas">
+      <div class="section-head"><h2>Suas listas</h2></div>
+      <div id="listasContainer"></div>
+    </div>
+
+    <!-- CONSULTAS -->
+    <div class="section" id="sec-consultas">
+      <div class="section-head"><h2>Consultas e exames</h2></div>
+      <div id="consultasContainer"></div>
+    </div>
+
+    <!-- RECEITAS -->
+    <div class="section" id="sec-receitas">
+      <div class="section-head"><h2>Suas receitas</h2></div>
+      <div class="receitas-grid" id="receitasContainer"></div>
+    </div>
+  </div>
+
+  <button class="fab" onclick="abrirCriar()">+</button>
+</div>
+
+<!-- MODAL: Nova Lista -->
+<div class="modal-overlay" id="modalListaOverlay" onclick="fecharModalSeForFundo(event,'modalListaOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalListaOverlay')">✕</button>
+    <h2>Nova lista</h2>
+    <label>Nome da lista</label>
+    <input type="text" id="novaListaNome" placeholder="Ex: Compras do mês, Lembretes..."/>
+    <button class="btn" onclick="criarLista()">Criar lista</button>
+  </div></div>
+</div>
+
+<!-- MODAL: Ver/editar lista -->
+<div class="modal-overlay" id="modalVerListaOverlay" onclick="fecharModalSeForFundo(event,'modalVerListaOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalVerListaOverlay')">✕</button>
+    <h2 id="verListaTitulo"></h2>
+    <div id="itensContainer" style="margin-bottom:16px"></div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="novoItemTexto" placeholder="Adicionar item..." style="margin-bottom:0" onkeydown="if(event.key==='Enter')adicionarItem()"/>
+      <button class="btn" style="width:auto;padding:12px 18px" onclick="adicionarItem()">+</button>
+    </div>
+    <button class="btn ghost" style="margin-top:16px;color:#B23A48;border-color:#B23A48" onclick="excluirListaAtual()">🗑️ Excluir esta lista</button>
+  </div></div>
+</div>
+
+<!-- MODAL: Nova Consulta -->
+<div class="modal-overlay" id="modalConsultaOverlay" onclick="fecharModalSeForFundo(event,'modalConsultaOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalConsultaOverlay')">✕</button>
+    <h2>Nova consulta / exame</h2>
+    <label>Tipo *</label>
+    <select id="consTipo">
+      <option value="consulta">🩺 Consulta médica</option>
+      <option value="exame">🧪 Exame</option>
+      <option value="dentista">🦷 Dentista</option>
+      <option value="outro">📌 Outro</option>
+    </select>
+    <label>Especialidade / nome *</label>
+    <input type="text" id="consEspecialidade" placeholder="Ex: Cardiologia, Hemograma, Limpeza..."/>
+    <label>Médico(a) / local do exame</label>
+    <input type="text" id="consMedico" placeholder="Ex: Dr. João Silva"/>
+    <label>Data *</label>
+    <input type="date" id="consData"/>
+    <label>Horário</label>
+    <input type="time" id="consHorario"/>
+    <label>Local</label>
+    <input type="text" id="consLocal" placeholder="Ex: Clínica Central, sala 4"/>
+    <label>Observações</label>
+    <textarea id="consObs" rows="2" placeholder="Ex: Precisa de jejum de 8h, levar exames anteriores..."></textarea>
+    <button class="btn plum" onclick="criarConsulta()">Salvar</button>
+  </div></div>
+</div>
+
+<!-- MODAL: Nova Receita -->
+<div class="modal-overlay" id="modalReceitaOverlay" onclick="fecharModalSeForFundo(event,'modalReceitaOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalReceitaOverlay')">✕</button>
+    <h2>Nova receita</h2>
+    <label>Nome da receita *</label>
+    <input type="text" id="recNome" placeholder="Ex: Bolo de cenoura"/>
+    <label>Foto (opcional)</label>
+    <input type="file" id="recFoto" accept="image/*"/>
+    <div style="display:flex;gap:10px">
+      <div style="flex:1"><label>Tempo de preparo</label><input type="text" id="recTempo" placeholder="Ex: 40 min"/></div>
+      <div style="flex:1"><label>Porções</label><input type="number" id="recPorcoes" placeholder="Ex: 8"/></div>
+    </div>
+    <label>Ingredientes</label>
+    <div id="ingredientesContainer"></div>
+    <button type="button" class="link-btn" style="text-align:left;margin:0 0 12px" onclick="adicionarCampoIngrediente()">+ Adicionar ingrediente</button>
+    <label>Modo de preparo</label>
+    <textarea id="recModoPreparo" rows="5" placeholder="Descreva o passo a passo..."></textarea>
+    <button class="btn gold" onclick="criarReceita()">Salvar receita</button>
+  </div></div>
+</div>
+
+<!-- MODAL: Ver Receita -->
+<div class="modal-overlay" id="modalVerReceitaOverlay" onclick="fecharModalSeForFundo(event,'modalVerReceitaOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalVerReceitaOverlay')">✕</button>
+    <div id="verReceitaConteudo"></div>
+    <button class="btn ghost" style="margin-top:16px;color:#B23A48;border-color:#B23A48" onclick="excluirReceitaAtual()">🗑️ Excluir esta receita</button>
+  </div></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://ecxnzwyzfodrmxldddbc.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_5d0kuLDSLtKgaAqgkp9HjQ_GoPvq4qf';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let me = null;
+let listaAtualId = null;
+let receitaAtualId = null;
+
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ===== AUTH =====
+function toggleAuth(qual){
+  document.getElementById('loginForm').classList.toggle('hidden', qual==='signup');
+  document.getElementById('signupForm').classList.toggle('hidden', qual==='login');
+}
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.classList.add('hidden');
+  const {data, error} = await sb.auth.signInWithPassword({email, password:pass});
+  if(error){ errEl.textContent = 'E-mail ou senha incorretos.'; errEl.classList.remove('hidden'); return; }
+  me = data.user;
+  entrarNoApp();
+}
+async function doSignup(){
+  const email = document.getElementById('signupEmail').value.trim();
+  const pass = document.getElementById('signupPass').value;
+  const errEl = document.getElementById('signupErr');
+  errEl.classList.add('hidden');
+  if(!email || pass.length<6){ errEl.textContent='Preencha um e-mail válido e senha com 6+ caracteres.'; errEl.classList.remove('hidden'); return; }
+  const {data, error} = await sb.auth.signUp({email, password:pass});
+  if(error){ errEl.textContent = error.message; errEl.classList.remove('hidden'); return; }
+  me = data.user;
+  entrarNoApp();
+}
+async function doLogout(){
+  await sb.auth.signOut();
+  me = null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('authScreen').style.display='flex';
+}
+async function checarSessao(){
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){ me = session.user; entrarNoApp(); }
+}
+function entrarNoApp(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  carregarListas();
+  carregarConsultas();
+  carregarReceitas();
+}
+
+// ===== NAVEGAÇÃO =====
+function showSection(nome){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===nome));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('on'));
+  document.getElementById('sec-'+nome).classList.add('on');
+}
+let secaoAtual='listas';
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>secaoAtual=t.dataset.tab));
+function abrirCriar(){
+  const ativa = document.querySelector('.tab.on').dataset.tab;
+  if(ativa==='listas') abrirModal('modalListaOverlay');
+  else if(ativa==='consultas') abrirModal('modalConsultaOverlay');
+  else abrirModalReceita();
+}
+function abrirModal(id){ document.getElementById(id).classList.add('on'); }
+function fecharModal(id){ document.getElementById(id).classList.remove('on'); }
+function fecharModalSeForFundo(e,id){ if(e.target.id===id) fecharModal(id); }
+
+// ===== LISTAS =====
+async function carregarListas(){
+  const {data:listas} = await sb.from('listas').select('*').order('criado_em',{ascending:false});
+  const cont = document.getElementById('listasContainer');
+  if(!listas || !listas.length){
+    cont.innerHTML = `<div class="empty-state"><div class="emoji">📝</div><p>Nenhuma lista ainda. Toca no + pra criar a primeira!</p></div>`;
+    return;
+  }
+  const comContagem = await Promise.all(listas.map(async l=>{
+    const {data:itens} = await sb.from('itens_lista').select('feito').eq('lista_id', l.id);
+    const total = itens?.length||0;
+    const feitos = itens?.filter(i=>i.feito).length||0;
+    return {...l, total, feitos};
+  }));
+  cont.innerHTML = comContagem.map(l=>`
+    <div class="card-item lista-card" onclick="abrirLista('${l.id}','${esc(l.nome)}')">
+      <div class="info">
+        <h3>${esc(l.nome)}</h3>
+        <span>${l.feitos}/${l.total} concluídos</span>
+      </div>
+      <span style="font-size:20px">→</span>
+    </div>
+  `).join('');
+}
+async function criarLista(){
+  const nome = document.getElementById('novaListaNome').value.trim();
+  if(!nome) return;
+  await sb.from('listas').insert({user_id: me.id, nome});
+  document.getElementById('novaListaNome').value='';
+  fecharModal('modalListaOverlay');
+  carregarListas();
+}
+async function abrirLista(id, nome){
+  listaAtualId = id;
+  document.getElementById('verListaTitulo').textContent = nome;
+  await carregarItens();
+  abrirModal('modalVerListaOverlay');
+}
+async function carregarItens(){
+  const {data:itens} = await sb.from('itens_lista').select('*').eq('lista_id', listaAtualId).order('criado_em');
+  const cont = document.getElementById('itensContainer');
+  if(!itens || !itens.length){ cont.innerHTML = '<p style="color:var(--ink-soft);font-size:14px;padding:8px 0">Nenhum item ainda.</p>'; return; }
+  cont.innerHTML = itens.map(i=>`
+    <div class="item-row">
+      <input type="checkbox" ${i.feito?'checked':''} onchange="marcarItem('${i.id}',this.checked)"/>
+      <span class="${i.feito?'feito':''}">${esc(i.texto)}</span>
+      <button onclick="excluirItem('${i.id}')">✕</button>
+    </div>
+  `).join('');
+}
+async function adicionarItem(){
+  const texto = document.getElementById('novoItemTexto').value.trim();
+  if(!texto) return;
+  await sb.from('itens_lista').insert({lista_id: listaAtualId, texto});
+  document.getElementById('novoItemTexto').value='';
+  await carregarItens();
+}
+async function marcarItem(id, feito){
+  await sb.from('itens_lista').update({feito}).eq('id', id);
+  await carregarItens();
+}
+async function excluirItem(id){
+  await sb.from('itens_lista').delete().eq('id', id);
+  await carregarItens();
+}
+async function excluirListaAtual(){
+  if(!confirm('Excluir esta lista e todos os itens dela?')) return;
+  await sb.from('listas').delete().eq('id', listaAtualId);
+  fecharModal('modalVerListaOverlay');
+  carregarListas();
+}
+
+// ===== CONSULTAS =====
+async function carregarConsultas(){
+  const {data:consultas} = await sb.from('consultas').select('*').order('data_consulta');
+  const cont = document.getElementById('consultasContainer');
+  if(!consultas || !consultas.length){
+    cont.innerHTML = `<div class="empty-state"><div class="emoji">🩺</div><p>Nenhuma consulta ou exame marcado. Toca no + pra adicionar!</p></div>`;
+    return;
+  }
+  const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  const iconesTipo = {consulta:'🩺', exame:'🧪', dentista:'🦷', outro:'📌'};
+  cont.innerHTML = consultas.map(c=>{
+    const d = new Date(c.data_consulta+'T00:00:00');
+    const icone = iconesTipo[c.tipo] || '🩺';
+    return `
+    <div class="card-item consulta-card">
+      <div class="consulta-data">
+        <div class="dia">${d.getDate()}</div>
+        <div class="mes">${meses[d.getMonth()]}</div>
+      </div>
+      <div class="consulta-info" style="flex:1">
+        <h3>${icone} ${esc(c.especialidade)}</h3>
+        <div class="meta">${c.medico?esc(c.medico)+' • ':''}${c.horario?c.horario.slice(0,5)+' • ':''}${esc(c.local||'')}</div>
+        ${c.observacoes?`<div class="meta" style="margin-top:4px;font-style:italic">${esc(c.observacoes)}</div>`:''}
+      </div>
+      <button onclick="excluirConsulta('${c.id}')" style="background:none;border:none;color:#B23A48;font-size:18px;cursor:pointer">✕</button>
+    </div>`;
+  }).join('');
+}
+async function criarConsulta(){
+  const especialidade = document.getElementById('consEspecialidade').value.trim();
+  const data_consulta = document.getElementById('consData').value;
+  if(!especialidade || !data_consulta){ alert('Preencha especialidade/nome e data.'); return; }
+  await sb.from('consultas').insert({
+    user_id: me.id, especialidade,
+    tipo: document.getElementById('consTipo').value,
+    medico: document.getElementById('consMedico').value.trim()||null,
+    data_consulta,
+    horario: document.getElementById('consHorario').value||null,
+    local: document.getElementById('consLocal').value.trim()||null,
+    observacoes: document.getElementById('consObs').value.trim()||null,
+  });
+  ['consEspecialidade','consMedico','consData','consHorario','consLocal','consObs'].forEach(id=>document.getElementById(id).value='');
+  fecharModal('modalConsultaOverlay');
+  carregarConsultas();
+}
+async function excluirConsulta(id){
+  if(!confirm('Excluir esta consulta?')) return;
+  await sb.from('consultas').delete().eq('id', id);
+  carregarConsultas();
+}
+
+// ===== RECEITAS =====
+function abrirModalReceita(){
+  document.getElementById('ingredientesContainer').innerHTML='';
+  adicionarCampoIngrediente();
+  abrirModal('modalReceitaOverlay');
+}
+function adicionarCampoIngrediente(){
+  const div = document.createElement('div');
+  div.className = 'ing-row';
+  div.innerHTML = `<input type="text" placeholder="Ex: 2 xícaras de farinha"/><button type="button" onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('ingredientesContainer').appendChild(div);
+}
+async function carregarReceitas(){
+  const {data:receitas} = await sb.from('receitas').select('*').order('criado_em',{ascending:false});
+  const cont = document.getElementById('receitasContainer');
+  if(!receitas || !receitas.length){
+    cont.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="emoji">🍲</div><p>Nenhuma receita ainda. Toca no + pra adicionar!</p></div>`;
+    return;
+  }
+  cont.innerHTML = receitas.map(r=>`
+    <div class="receita-card" onclick='abrirVerReceita(${JSON.stringify(r).replace(/'/g,"&#39;")})'>
+      <div class="foto">${r.foto_url?`<img src="${r.foto_url}"/>`:'🍲'}</div>
+      <div class="info">
+        <h3>${esc(r.nome)}</h3>
+        <div class="meta">${esc(r.tempo_preparo||'')}${r.porcoes?' • '+r.porcoes+' porções':''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+async function criarReceita(){
+  const nome = document.getElementById('recNome').value.trim();
+  if(!nome){ alert('Digite o nome da receita.'); return; }
+  const ingredientes = [...document.querySelectorAll('#ingredientesContainer input')].map(i=>i.value.trim()).filter(Boolean);
+  let foto_url = null;
+  const fotoFile = document.getElementById('recFoto').files[0];
+  if(fotoFile){
+    const ext = fotoFile.name.split('.').pop();
+    const path = me.id+'/'+Date.now()+'.'+ext;
+    const {error:upErr} = await sb.storage.from('receitas-fotos').upload(path, fotoFile);
+    if(!upErr){
+      const {data:pub} = sb.storage.from('receitas-fotos').getPublicUrl(path);
+      foto_url = pub.publicUrl;
+    }
+  }
+  await sb.from('receitas').insert({
+    user_id: me.id, nome,
+    tempo_preparo: document.getElementById('recTempo').value.trim()||null,
+    porcoes: document.getElementById('recPorcoes').value ? parseInt(document.getElementById('recPorcoes').value) : null,
+    ingredientes, foto_url,
+    modo_preparo: document.getElementById('recModoPreparo').value.trim()||null,
+  });
+  ['recNome','recTempo','recPorcoes','recModoPreparo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('recFoto').value='';
+  fecharModal('modalReceitaOverlay');
+  carregarReceitas();
+}
+function abrirVerReceita(r){
+  receitaAtualId = r.id;
+  const cont = document.getElementById('verReceitaConteudo');
+  cont.innerHTML = `
+    ${r.foto_url?`<img src="${r.foto_url}" style="width:100%;border-radius:12px;margin-bottom:14px;max-height:220px;object-fit:cover"/>`:''}
+    <h2>${esc(r.nome)}</h2>
+    <div style="color:var(--ink-soft);font-size:13px;margin:6px 0 16px">${esc(r.tempo_preparo||'')}${r.porcoes?' • '+r.porcoes+' porções':''}</div>
+    ${r.ingredientes && r.ingredientes.length?`<h3 style="font-size:15px;color:var(--forest);margin-bottom:8px">Ingredientes</h3><ul style="margin:0 0 16px 18px;font-size:14px;line-height:1.8">${r.ingredientes.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`:''}
+    ${r.modo_preparo?`<h3 style="font-size:15px;color:var(--forest);margin-bottom:8px">Modo de preparo</h3><p style="font-size:14px;line-height:1.7;white-space:pre-wrap">${esc(r.modo_preparo)}</p>`:''}
+  `;
+  abrirModal('modalVerReceitaOverlay');
+}
+async function excluirReceitaAtual(){
+  if(!confirm('Excluir esta receita?')) return;
+  await sb.from('receitas').delete().eq('id', receitaAtualId);
+  fecharModal('modalVerReceitaOverlay');
+  carregarReceitas();
+}
+
+checarSessao();
+</script>
+</body>
+</html>
