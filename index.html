@@ -27,8 +27,8 @@ h1,h2,h3,.display{font-family:'Fraunces',serif;}
 /* ===== AUTH ===== */
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
 .auth-box{background:var(--bg-card);border-radius:24px;padding:40px 32px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(44,62,50,.12);}
-.auth-box h1{font-size:32px;font-weight:700;color:var(--forest);margin-bottom:6px;}
-.auth-box p.sub{color:var(--ink-soft);font-size:14px;margin-bottom:24px;}
+.auth-box h1{font-size:26px;font-weight:700;color:var(--forest);margin-bottom:6px;line-height:1.25;}
+.auth-box p.sub{color:var(--ink-soft);font-size:14px;margin-bottom:24px;line-height:1.5;}
 input,select,textarea{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:15px;background:#fff;color:var(--ink);margin-bottom:12px;}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--forest);}
 .btn{width:100%;padding:13px;border:none;border-radius:10px;background:var(--forest);color:#fff;font-family:'Work Sans',sans-serif;font-weight:600;font-size:15px;cursor:pointer;transition:transform .15s;}
@@ -286,6 +286,9 @@ async function doLogout(){
   me = null;
   document.getElementById('app').style.display='none';
   document.getElementById('authScreen').style.display='flex';
+  ['loginEmail','loginPass','signupEmail','signupPass'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.value='';
+  });
 }
 async function checarSessao(){
   const {data:{session}} = await sb.auth.getSession();
@@ -344,7 +347,9 @@ async function carregarListas(){
 async function criarLista(){
   const nome = document.getElementById('novaListaNome').value.trim();
   if(!nome) return;
-  await sb.from('listas').insert({user_id: me.id, nome});
+  if(!me?.id){ alert('Erro: sessão não encontrada. Tenta sair e entrar de novo.'); return; }
+  const {error} = await sb.from('listas').insert({user_id: me.id, nome});
+  if(error){ console.error('Erro ao criar lista:', error); alert('Erro ao criar lista: '+error.message); return; }
   document.getElementById('novaListaNome').value='';
   fecharModal('modalListaOverlay');
   carregarListas();
@@ -403,13 +408,14 @@ async function carregarConsultas(){
     const d = new Date(c.data_consulta+'T00:00:00');
     const icone = iconesTipo[c.tipo] || '🩺';
     return `
-    <div class="card-item consulta-card">
+    <div class="card-item consulta-card" style="${c.concluida?'opacity:.5':''}">
+      <input type="checkbox" ${c.concluida?'checked':''} onchange="marcarConsultaConcluida('${c.id}',this.checked)" style="width:22px;height:22px;accent-color:var(--forest);flex-shrink:0;margin-top:4px"/>
       <div class="consulta-data">
         <div class="dia">${d.getDate()}</div>
         <div class="mes">${meses[d.getMonth()]}</div>
       </div>
       <div class="consulta-info" style="flex:1">
-        <h3>${icone} ${esc(c.especialidade)}</h3>
+        <h3 style="${c.concluida?'text-decoration:line-through':''}">${icone} ${esc(c.especialidade)}</h3>
         <div class="meta">${c.medico?esc(c.medico)+' • ':''}${c.horario?c.horario.slice(0,5)+' • ':''}${esc(c.local||'')}</div>
         ${c.observacoes?`<div class="meta" style="margin-top:4px;font-style:italic">${esc(c.observacoes)}</div>`:''}
       </div>
@@ -417,11 +423,16 @@ async function carregarConsultas(){
     </div>`;
   }).join('');
 }
+async function marcarConsultaConcluida(id, concluida){
+  const {error} = await sb.from('consultas').update({concluida}).eq('id', id);
+  if(error){ console.error('Erro ao marcar consulta:', error); }
+  carregarConsultas();
+}
 async function criarConsulta(){
   const especialidade = document.getElementById('consEspecialidade').value.trim();
   const data_consulta = document.getElementById('consData').value;
   if(!especialidade || !data_consulta){ alert('Preencha especialidade/nome e data.'); return; }
-  await sb.from('consultas').insert({
+  const {error} = await sb.from('consultas').insert({
     user_id: me.id, especialidade,
     tipo: document.getElementById('consTipo').value,
     medico: document.getElementById('consMedico').value.trim()||null,
@@ -430,6 +441,7 @@ async function criarConsulta(){
     local: document.getElementById('consLocal').value.trim()||null,
     observacoes: document.getElementById('consObs').value.trim()||null,
   });
+  if(error){ console.error('Erro ao criar consulta:', error); alert('Erro ao salvar: '+error.message); return; }
   ['consEspecialidade','consMedico','consData','consHorario','consLocal','consObs'].forEach(id=>document.getElementById(id).value='');
   fecharModal('modalConsultaOverlay');
   carregarConsultas();
@@ -479,18 +491,20 @@ async function criarReceita(){
     const ext = fotoFile.name.split('.').pop();
     const path = me.id+'/'+Date.now()+'.'+ext;
     const {error:upErr} = await sb.storage.from('receitas-fotos').upload(path, fotoFile);
-    if(!upErr){
+    if(upErr){ console.error('Erro ao subir foto:', upErr); }
+    else{
       const {data:pub} = sb.storage.from('receitas-fotos').getPublicUrl(path);
       foto_url = pub.publicUrl;
     }
   }
-  await sb.from('receitas').insert({
+  const {error} = await sb.from('receitas').insert({
     user_id: me.id, nome,
     tempo_preparo: document.getElementById('recTempo').value.trim()||null,
     porcoes: document.getElementById('recPorcoes').value ? parseInt(document.getElementById('recPorcoes').value) : null,
     ingredientes, foto_url,
     modo_preparo: document.getElementById('recModoPreparo').value.trim()||null,
   });
+  if(error){ console.error('Erro ao criar receita:', error); alert('Erro ao salvar receita: '+error.message); return; }
   ['recNome','recTempo','recPorcoes','recModoPreparo'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('recFoto').value='';
   fecharModal('modalReceitaOverlay');
