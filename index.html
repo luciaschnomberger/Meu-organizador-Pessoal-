@@ -209,11 +209,13 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     <button class="close-x" onclick="fecharModal('modalVerListaOverlay')">✕</button>
     <h2 id="verListaTitulo"></h2>
     <div id="itensContainer" style="margin-bottom:16px"></div>
+    <div id="itemErr" class="err hidden" style="margin-bottom:8px"></div>
+    <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">Adicionar item</label>
     <div style="display:flex;gap:8px">
-      <input type="text" id="novoItemTexto" placeholder="Adicionar item..." style="margin-bottom:0" onkeydown="if(event.key==='Enter')adicionarItem()"/>
-      <button class="btn" style="width:auto;padding:12px 18px" onclick="adicionarItem()">+</button>
+      <input type="text" id="novoItemTexto" placeholder="Ex: Comprar leite" style="margin-bottom:0" onkeydown="if(event.key==='Enter')adicionarItem()"/>
+      <button class="btn gold" style="width:auto;padding:12px 20px;white-space:nowrap" onclick="adicionarItem()">+ Adicionar</button>
     </div>
-    <button class="btn ghost" style="margin-top:16px;color:#B23A48;border-color:#B23A48" onclick="excluirListaAtual()">🗑️ Excluir esta lista</button>
+    <button class="btn ghost" style="margin-top:20px;color:#B23A48;border-color:#B23A48" onclick="excluirListaAtual()">🗑️ Excluir esta lista</button>
   </div></div>
 </div>
 
@@ -558,10 +560,15 @@ async function carregarItens(){
 }
 async function adicionarItem(){
   const texto = document.getElementById('novoItemTexto').value.trim();
+  const errEl = document.getElementById('itemErr');
+  errEl.classList.add('hidden');
   if(!texto) return;
-  await sb.from('itens_lista').insert({lista_id: listaAtualId, texto});
+  if(!listaAtualId){ errEl.textContent='Erro: lista não identificada. Fecha e abre a lista de novo.'; errEl.classList.remove('hidden'); return; }
+  const {error} = await sb.from('itens_lista').insert({lista_id: listaAtualId, texto});
+  if(error){ console.error('Erro ao adicionar item:', error); errEl.textContent='Erro ao adicionar: '+error.message; errEl.classList.remove('hidden'); return; }
   document.getElementById('novoItemTexto').value='';
   await carregarItens();
+  await carregarListas();
 }
 async function marcarItem(id, feito){
   await sb.from('itens_lista').update({feito}).eq('id', id);
@@ -579,13 +586,12 @@ async function excluirListaAtual(){
 }
 
 // ===== CONSULTAS =====
-function avisosDispensadosHoje(){
-  return localStorage.getItem('avisosDispensados_'+(me?.id||'')) === new Date().toDateString();
+function chaveAvisosVistos(){ return 'avisosVistos_'+(me?.id||''); }
+function idsAvisosVistos(){
+  try{ return JSON.parse(localStorage.getItem(chaveAvisosVistos())||'[]'); }catch(e){ return []; }
 }
-function dispensarAvisos(){
-  localStorage.setItem('avisosDispensados_'+(me?.id||''), new Date().toDateString());
-  document.getElementById('avisoBadge').classList.add('hidden');
-  document.getElementById('avisoBanner').classList.add('hidden');
+function marcarAvisosComoVistos(ids){
+  localStorage.setItem(chaveAvisosVistos(), JSON.stringify(ids));
 }
 async function buscarAvisosProximos(){
   const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -602,11 +608,13 @@ async function verificarAvisosProximos(){
   const badge = document.getElementById('avisoBadge');
   const banner = document.getElementById('avisoBanner');
   const hojeStr = new Date().toISOString().split('T')[0];
-  if(proximas.length && !avisosDispensadosHoje()){
+  const vistos = idsAvisosVistos();
+  const naoVistos = proximas.filter(p=>!vistos.includes(p.id));
+  if(naoVistos.length){
     badge.classList.remove('hidden');
-    const p = proximas[0];
+    const p = naoVistos[0];
     const ehHoje = p.data_consulta === hojeStr;
-    banner.innerHTML = `🔔 ${ehHoje?'Hoje':'Em breve'}: ${esc(p.especialidade)}${p.horario?' às '+p.horario.slice(0,5):''}${proximas.length>1?' (+'+(proximas.length-1)+' outro(s))':''} — <u>toca pra ver</u>`;
+    banner.innerHTML = `🔔 ${ehHoje?'Hoje':'Em breve'}: ${esc(p.especialidade)}${p.horario?' às '+p.horario.slice(0,5):''}${naoVistos.length>1?' (+'+(naoVistos.length-1)+' outro(s))':''} — <u>toca pra ver</u>`;
     banner.classList.remove('hidden');
   } else {
     badge.classList.add('hidden');
@@ -629,9 +637,17 @@ async function mostrarAvisos(){
         <span style="font-size:13px;color:var(--ink-soft)">${ehHoje?'📍 HOJE':'📅 '+d.getDate()+' de '+meses[d.getMonth()]}${p.horario?' às '+p.horario.slice(0,5):''}</span>
       </div>`;
     }).join('');
+    cont.innerHTML += `<button class="link-btn" style="margin-top:6px" onclick="desfazerMarcarLido()">↩️ Marcar como não visto de novo</button>`;
   }
   abrirModal('modalAvisosOverlay');
-  dispensarAvisos();
+  marcarAvisosComoVistos(proximas.map(p=>p.id));
+  document.getElementById('avisoBadge').classList.add('hidden');
+  document.getElementById('avisoBanner').classList.add('hidden');
+}
+function desfazerMarcarLido(){
+  marcarAvisosComoVistos([]);
+  fecharModal('modalAvisosOverlay');
+  verificarAvisosProximos();
 }
 async function carregarConsultas(){
   const {data:consultas} = await sb.from('consultas').select('*').order('data_consulta');
