@@ -410,7 +410,14 @@ async function salvarNovaSenha(){
   errEl.classList.add('hidden');
   if(novaSenha.length<6){ errEl.textContent='A senha precisa ter pelo menos 6 caracteres.'; errEl.classList.remove('hidden'); return; }
   const {error} = await sb.auth.updateUser({password: novaSenha});
-  if(error){ errEl.textContent = error.message; errEl.classList.remove('hidden'); return; }
+  if(error){
+    const msg = error.message||'';
+    if(msg.includes('should be different from the old password')) errEl.textContent = 'A nova senha precisa ser diferente da senha atual.';
+    else if(msg.includes('Password should be at least')) errEl.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
+    else if(msg.includes('session') || msg.includes('expired')) errEl.textContent = 'O link expirou. Pede um novo em "Esqueci minha senha".';
+    else errEl.textContent = msg;
+    errEl.classList.remove('hidden'); return;
+  }
   alert('Senha alterada com sucesso! Você já pode usar a conta normalmente.');
   history.replaceState(null,'',window.location.pathname);
   const {data:{session}} = await sb.auth.getSession();
