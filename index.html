@@ -162,7 +162,7 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
       <button onclick="doLogout()">Sair</button>
     </div>
   </nav>
-  <div id="avisoBanner" class="hidden" style="background:#C9971F;color:#2C1800;padding:10px 20px;text-align:center;font-size:13px;font-weight:600;cursor:pointer" onclick="showSection('consultas');document.getElementById('avisoBanner').classList.add('hidden')"></div>
+  <div id="avisoBanner" class="hidden" style="background:#C9971F;color:#2C1800;padding:10px 20px;text-align:center;font-size:13px;font-weight:600;cursor:pointer" onclick="mostrarAvisos()"></div>
   <div class="tabs">
     <div class="tab on" data-tab="listas" onclick="showSection('listas')">📝 Listas</div>
     <div class="tab" data-tab="consultas" onclick="showSection('consultas')">🩺 Saúde</div>
@@ -273,6 +273,16 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     <button class="close-x" onclick="fecharModal('modalVerReceitaOverlay')">✕</button>
     <div id="verReceitaConteudo"></div>
     <button class="btn ghost" style="margin-top:16px;color:#B23A48;border-color:#B23A48" onclick="excluirReceitaAtual()">🗑️ Excluir esta receita</button>
+  </div></div>
+</div>
+
+<!-- MODAL: Avisos -->
+<div class="modal-overlay" id="modalAvisosOverlay" onclick="fecharModalSeForFundo(event,'modalAvisosOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalAvisosOverlay')">✕</button>
+    <h2>🔔 Avisos próximos</h2>
+    <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Consultas e exames de hoje e amanhã</p>
+    <div id="avisosConteudo"></div>
   </div></div>
 </div>
 
@@ -502,14 +512,21 @@ async function carregarListas(){
     return {...l, total, feitos};
   }));
   cont.innerHTML = comContagem.map(l=>`
-    <div class="card-item lista-card" onclick="abrirLista('${l.id}','${esc(l.nome)}')">
+    <div class="card-item lista-card" data-id="${l.id}" data-nome="${esc(l.nome)}">
       <div class="info">
         <h3>${esc(l.nome)}</h3>
-        <span>${l.feitos}/${l.total} concluídos</span>
+        <span>${l.total===0?'Nenhum item ainda':l.feitos+'/'+l.total+' concluídos'}</span>
       </div>
       <span style="font-size:20px">→</span>
     </div>
   `).join('');
+  // Anexa os cliques depois de renderizar (mais seguro que onclick inline
+  // com nome de lista, que pode ter aspas ou outros caracteres especiais)
+  cont.querySelectorAll('.lista-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      abrirLista(card.dataset.id, card.dataset.nome);
+    });
+  });
 }
 async function criarLista(){
   const nome = document.getElementById('novaListaNome').value.trim();
@@ -562,7 +579,15 @@ async function excluirListaAtual(){
 }
 
 // ===== CONSULTAS =====
-async function verificarAvisosProximos(){
+function avisosDispensadosHoje(){
+  return localStorage.getItem('avisosDispensados_'+(me?.id||'')) === new Date().toDateString();
+}
+function dispensarAvisos(){
+  localStorage.setItem('avisosDispensados_'+(me?.id||''), new Date().toDateString());
+  document.getElementById('avisoBadge').classList.add('hidden');
+  document.getElementById('avisoBanner').classList.add('hidden');
+}
+async function buscarAvisosProximos(){
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const daqui2dias = new Date(hoje); daqui2dias.setDate(hoje.getDate()+2);
   const hojeStr = hoje.toISOString().split('T')[0];
@@ -570,14 +595,18 @@ async function verificarAvisosProximos(){
   const {data:proximas} = await sb.from('consultas').select('*')
     .gte('data_consulta', hojeStr).lte('data_consulta', daqui2diasStr)
     .eq('concluida', false).order('data_consulta');
+  return proximas||[];
+}
+async function verificarAvisosProximos(){
+  const proximas = await buscarAvisosProximos();
   const badge = document.getElementById('avisoBadge');
   const banner = document.getElementById('avisoBanner');
-  if(proximas && proximas.length){
+  const hojeStr = new Date().toISOString().split('T')[0];
+  if(proximas.length && !avisosDispensadosHoje()){
     badge.classList.remove('hidden');
     const p = proximas[0];
-    const d = new Date(p.data_consulta+'T00:00:00');
     const ehHoje = p.data_consulta === hojeStr;
-    banner.textContent = `🔔 ${ehHoje?'Hoje':'Em breve'}: ${p.especialidade}${p.horario?' às '+p.horario.slice(0,5):''}${proximas.length>1?' (+'+(proximas.length-1)+' outro(s))':''} — toca pra ver`;
+    banner.innerHTML = `🔔 ${ehHoje?'Hoje':'Em breve'}: ${esc(p.especialidade)}${p.horario?' às '+p.horario.slice(0,5):''}${proximas.length>1?' (+'+(proximas.length-1)+' outro(s))':''} — <u>toca pra ver</u>`;
     banner.classList.remove('hidden');
   } else {
     badge.classList.add('hidden');
@@ -585,25 +614,24 @@ async function verificarAvisosProximos(){
   }
 }
 async function mostrarAvisos(){
-  const hoje = new Date(); hoje.setHours(0,0,0,0);
-  const daqui2dias = new Date(hoje); daqui2dias.setDate(hoje.getDate()+2);
-  const hojeStr = hoje.toISOString().split('T')[0];
-  const daqui2diasStr = daqui2dias.toISOString().split('T')[0];
-  const {data:proximas} = await sb.from('consultas').select('*')
-    .gte('data_consulta', hojeStr).lte('data_consulta', daqui2diasStr)
-    .eq('concluida', false).order('data_consulta');
-  showSection('consultas');
-  if(!proximas || !proximas.length){
-    alert('🔔 Nenhum aviso no momento — sem consultas ou exames nos próximos 2 dias.');
-    return;
-  }
+  const proximas = await buscarAvisosProximos();
+  const hojeStr = new Date().toISOString().split('T')[0];
   const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  const texto = proximas.map(p=>{
-    const d = new Date(p.data_consulta+'T00:00:00');
-    const ehHoje = p.data_consulta === hojeStr;
-    return `• ${p.especialidade} — ${ehHoje?'HOJE':d.getDate()+' de '+meses[d.getMonth()]}${p.horario?' às '+p.horario.slice(0,5):''}`;
-  }).join('\n');
-  alert('🔔 Avisos próximos:\n\n'+texto);
+  const cont = document.getElementById('avisosConteudo');
+  if(!proximas.length){
+    cont.innerHTML = `<div class="empty-state"><div class="emoji">🔔</div><p>Nenhum aviso no momento — sem consultas ou exames nos próximos 2 dias.</p></div>`;
+  } else {
+    cont.innerHTML = proximas.map(p=>{
+      const d = new Date(p.data_consulta+'T00:00:00');
+      const ehHoje = p.data_consulta === hojeStr;
+      return `<div class="card-item" style="margin-bottom:10px">
+        <strong style="color:var(--forest)">${esc(p.especialidade)}</strong><br>
+        <span style="font-size:13px;color:var(--ink-soft)">${ehHoje?'📍 HOJE':'📅 '+d.getDate()+' de '+meses[d.getMonth()]}${p.horario?' às '+p.horario.slice(0,5):''}</span>
+      </div>`;
+    }).join('');
+  }
+  abrirModal('modalAvisosOverlay');
+  dispensarAvisos();
 }
 async function carregarConsultas(){
   const {data:consultas} = await sb.from('consultas').select('*').order('data_consulta');
@@ -680,15 +708,17 @@ function adicionarCampoIngrediente(){
   div.innerHTML = `<input type="text" placeholder="Ex: 2 xícaras de farinha"/><button type="button" onclick="this.parentElement.remove()">✕</button>`;
   document.getElementById('ingredientesContainer').appendChild(div);
 }
+let receitasCache = [];
 async function carregarReceitas(){
   const {data:receitas} = await sb.from('receitas').select('*').order('criado_em',{ascending:false});
+  receitasCache = receitas || [];
   const cont = document.getElementById('receitasContainer');
   if(!receitas || !receitas.length){
     cont.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="emoji">🍲</div><p>Nenhuma receita ainda. Toca no + pra adicionar!</p></div>`;
     return;
   }
   cont.innerHTML = receitas.map(r=>`
-    <div class="receita-card" onclick='abrirVerReceita(${JSON.stringify(r).replace(/'/g,"&#39;")})'>
+    <div class="receita-card" data-id="${r.id}">
       <div class="foto">${r.foto_url?`<img src="${r.foto_url}"/>`:'🍲'}</div>
       <div class="info">
         <h3>${esc(r.nome)}</h3>
@@ -696,6 +726,12 @@ async function carregarReceitas(){
       </div>
     </div>
   `).join('');
+  cont.querySelectorAll('.receita-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const r = receitasCache.find(rc=>rc.id===card.dataset.id);
+      if(r) abrirVerReceita(r);
+    });
+  });
 }
 async function criarReceita(){
   const nome = document.getElementById('recNome').value.trim();
