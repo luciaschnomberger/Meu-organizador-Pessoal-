@@ -272,7 +272,7 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     <button class="close-x" onclick="fecharModal('modalLembreteOverlay')">✕</button>
     <h2>Novo lembrete</h2>
     <label>Categoria *</label>
-    <select id="lembCategoria" onchange="document.getElementById('lembRepeteWrap').style.display=(this.value==='aniversario')?'block':'none'">
+    <select id="lembCategoria" onchange="alternarCamposLembrete()">
       <option value="aniversario">🎂 Aniversário</option>
       <option value="viagem">✈️ Viagem</option>
       <option value="conta">💰 Conta</option>
@@ -280,8 +280,39 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     </select>
     <label>Título *</label>
     <input type="text" id="lembTitulo" placeholder="Ex: Aniversário da Maria, Pagar internet, Viagem pra Floripa..."/>
-    <label>Data *</label>
-    <input type="date" id="lembData"/>
+
+    <div id="lembDataNormalWrap" style="display:none">
+      <label>Data *</label>
+      <input type="date" id="lembData"/>
+    </div>
+
+    <div id="lembDataAniversarioWrap">
+      <label>Dia e mês do aniversário *</label>
+      <div style="display:flex;gap:10px">
+        <select id="lembDiaAniv" style="flex:1">
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+          <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+          <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+          <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+          <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+          <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+          <option value="19">19</option><option value="20">20</option><option value="21">21</option>
+          <option value="22">22</option><option value="23">23</option><option value="24">24</option>
+          <option value="25">25</option><option value="26">26</option><option value="27">27</option>
+          <option value="28">28</option><option value="29">29</option><option value="30">30</option>
+          <option value="31">31</option>
+        </select>
+        <select id="lembMesAniv" style="flex:2">
+          <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+          <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+          <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+          <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+        </select>
+      </div>
+      <label>Ano de nascimento (opcional)</label>
+      <input type="number" id="lembAnoNascimento" placeholder="Ex: 1990 — deixe em branco se não souber" min="1900" max="2026"/>
+    </div>
+
     <div id="lembRepeteWrap">
       <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
         <input type="checkbox" id="lembRepeteAnual" checked style="width:auto"/>
@@ -334,7 +365,7 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
   <div class="modal"><div class="modal-inner">
     <button class="close-x" onclick="fecharModal('modalAvisosOverlay')">✕</button>
     <h2>🔔 Avisos próximos</h2>
-    <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Consultas e exames de hoje e amanhã</p>
+    <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Consultas, exames e lembretes de hoje e amanhã</p>
     <div id="avisosConteudo"></div>
   </div></div>
 </div>
@@ -658,10 +689,26 @@ async function buscarAvisosProximos(){
   const daqui2dias = new Date(hoje); daqui2dias.setDate(hoje.getDate()+2);
   const hojeStr = hoje.toISOString().split('T')[0];
   const daqui2diasStr = daqui2dias.toISOString().split('T')[0];
-  const {data:proximas} = await sb.from('consultas').select('*')
+
+  const {data:consultasProx} = await sb.from('consultas').select('*')
     .gte('data_consulta', hojeStr).lte('data_consulta', daqui2diasStr)
     .eq('concluida', false).order('data_consulta');
-  return proximas||[];
+
+  const {data:lembretesProx} = await sb.from('lembretes').select('*')
+    .gte('data', hojeStr).lte('data', daqui2diasStr).order('data');
+
+  const unificados = [
+    ...(consultasProx||[]).map(c=>({
+      id:c.id, titulo:c.especialidade, data:c.data_consulta,
+      horario:c.horario, icone: c.tipo==='exame'?'🧪':(c.tipo==='dentista'?'🦷':'🩺'),
+    })),
+    ...(lembretesProx||[]).map(l=>({
+      id:l.id, titulo:l.titulo, data:l.data,
+      horario:null, icone: iconesLembrete[l.categoria]||'📌',
+    })),
+  ];
+  unificados.sort((a,b)=> a.data < b.data ? -1 : 1);
+  return unificados;
 }
 async function verificarAvisosProximos(){
   const proximas = await buscarAvisosProximos();
@@ -673,8 +720,8 @@ async function verificarAvisosProximos(){
   if(naoVistos.length){
     badge.classList.remove('hidden');
     const p = naoVistos[0];
-    const ehHoje = p.data_consulta === hojeStr;
-    banner.innerHTML = `🔔 ${ehHoje?'Hoje':'Em breve'}: ${esc(p.especialidade)}${p.horario?' às '+p.horario.slice(0,5):''}${naoVistos.length>1?' (+'+(naoVistos.length-1)+' outro(s))':''} — <u>toca pra ver</u>`;
+    const ehHoje = p.data === hojeStr;
+    banner.innerHTML = `🔔 ${ehHoje?'Hoje':'Em breve'}: ${p.icone} ${esc(p.titulo)}${p.horario?' às '+p.horario.slice(0,5):''}${naoVistos.length>1?' (+'+(naoVistos.length-1)+' outro(s))':''} — <u>toca pra ver</u>`;
     banner.classList.remove('hidden');
   } else {
     badge.classList.add('hidden');
@@ -687,13 +734,13 @@ async function mostrarAvisos(){
   const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const cont = document.getElementById('avisosConteudo');
   if(!proximas.length){
-    cont.innerHTML = `<div class="empty-state"><div class="emoji">🔔</div><p>Nenhum aviso no momento — sem consultas ou exames nos próximos 2 dias.</p></div>`;
+    cont.innerHTML = `<div class="empty-state"><div class="emoji">🔔</div><p>Nenhum aviso no momento — nada previsto pros próximos 2 dias.</p></div>`;
   } else {
     cont.innerHTML = proximas.map(p=>{
-      const d = new Date(p.data_consulta+'T00:00:00');
-      const ehHoje = p.data_consulta === hojeStr;
+      const d = new Date(p.data+'T00:00:00');
+      const ehHoje = p.data === hojeStr;
       return `<div class="card-item" style="margin-bottom:10px">
-        <strong style="color:var(--forest)">${esc(p.especialidade)}</strong><br>
+        <strong style="color:var(--forest)">${p.icone} ${esc(p.titulo)}</strong><br>
         <span style="font-size:13px;color:var(--ink-soft)">${ehHoje?'📍 HOJE':'📅 '+d.getDate()+' de '+meses[d.getMonth()]}${p.horario?' às '+p.horario.slice(0,5):''}</span>
       </div>`;
     }).join('');
@@ -781,25 +828,58 @@ async function excluirConsulta(id){
 
 // ===== LEMBRETES =====
 const iconesLembrete = {aniversario:'🎂', viagem:'✈️', conta:'💰', outro:'📌'};
+function alternarCamposLembrete(){
+  const ehAniversario = document.getElementById('lembCategoria').value === 'aniversario';
+  document.getElementById('lembDataNormalWrap').style.display = ehAniversario ? 'none' : 'block';
+  document.getElementById('lembDataAniversarioWrap').style.display = ehAniversario ? 'block' : 'none';
+  document.getElementById('lembRepeteWrap').style.display = ehAniversario ? 'block' : 'none';
+}
+function ehAnoBissexto(ano){ return (ano%4===0 && ano%100!==0) || ano%400===0; }
 async function criarLembrete(){
   const titulo = document.getElementById('lembTitulo').value.trim();
-  const data = document.getElementById('lembData').value;
-  if(!titulo || !data){ alert('Preencha título e data.'); return; }
   const categoria = document.getElementById('lembCategoria').value;
-  const repeteAnual = categoria==='aniversario' ? document.getElementById('lembRepeteAnual').checked : false;
+  const ehAniversario = categoria==='aniversario';
+  let data, repeteAnual, anoNascimento = null;
+
+  if(ehAniversario){
+    const dia = parseInt(document.getElementById('lembDiaAniv').value);
+    let mes = parseInt(document.getElementById('lembMesAniv').value);
+    const anoNascInput = document.getElementById('lembAnoNascimento').value.trim();
+    if(anoNascInput) anoNascimento = parseInt(anoNascInput);
+    if(!titulo){ alert('Preencha o título.'); return; }
+    const hojeD = new Date(); hojeD.setHours(0,0,0,0);
+    let ano = hojeD.getFullYear();
+    let diaAjustado = dia;
+    if(mes===2 && dia===29 && !ehAnoBissexto(ano)) diaAjustado = 28;
+    let candidata = `${ano}-${String(mes).padStart(2,'0')}-${String(diaAjustado).padStart(2,'0')}`;
+    if(candidata < hojeD.toISOString().split('T')[0]){
+      ano++;
+      if(mes===2 && dia===29 && !ehAnoBissexto(ano)) diaAjustado = 28; else diaAjustado = dia;
+      candidata = `${ano}-${String(mes).padStart(2,'0')}-${String(diaAjustado).padStart(2,'0')}`;
+    }
+    data = candidata;
+    repeteAnual = document.getElementById('lembRepeteAnual').checked;
+  } else {
+    data = document.getElementById('lembData').value;
+    if(!titulo || !data){ alert('Preencha título e data.'); return; }
+    repeteAnual = false;
+  }
+
   const {error} = await sb.from('lembretes').insert({
     user_id: me.id, titulo, categoria, data,
     repete_anual: repeteAnual,
+    ano_nascimento: anoNascimento,
     dias_antes_lembrete: parseInt(document.getElementById('lembDiasAntes').value),
     lembrete_enviado: false,
   });
   if(error){ console.error('Erro ao criar lembrete:', error); alert('Erro ao salvar: '+error.message); return; }
-  ['lembTitulo','lembData'].forEach(id=>document.getElementById(id).value='');
+  ['lembTitulo','lembData','lembAnoNascimento'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('lembCategoria').value = 'aniversario';
   document.getElementById('lembRepeteAnual').checked = true;
-  document.getElementById('lembRepeteWrap').style.display = 'block';
+  alternarCamposLembrete();
   fecharModal('modalLembreteOverlay');
   carregarLembretes();
+  verificarAvisosProximos();
 }
 async function carregarLembretes(){
   const {data:lembretes} = await sb.from('lembretes').select('*').order('data');
@@ -832,7 +912,7 @@ async function carregarLembretes(){
         <div class="mes">${meses[d.getMonth()]}</div>
       </div>
       <div class="consulta-info" style="flex:1">
-        <h3>${icone} ${esc(l.titulo)}</h3>
+        <h3>${icone} ${esc(l.titulo)}${l.ano_nascimento?' <span style="font-weight:400;color:var(--ink-soft)">('+(d.getFullYear()-l.ano_nascimento)+' anos)</span>':''}</h3>
         <div class="meta">🔔 Lembrete ${l.dias_antes_lembrete} dia(s) antes por email${l.repete_anual?' • repete todo ano':''}</div>
       </div>
       <button onclick="excluirLembrete('${l.id}')" style="background:none;border:none;color:#B23A48;font-size:18px;cursor:pointer;flex-shrink:0">✕</button>
@@ -843,6 +923,7 @@ async function excluirLembrete(id){
   if(!confirm('Excluir este lembrete?')) return;
   await sb.from('lembretes').delete().eq('id', id);
   carregarLembretes();
+  verificarAvisosProximos();
 }
 
 // ===== RECEITAS =====
