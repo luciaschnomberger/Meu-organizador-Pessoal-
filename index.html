@@ -279,8 +279,8 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
       <option value="conta">💰 Conta</option>
       <option value="outro">📌 Outro</option>
     </select>
-    <label>Título *</label>
-    <input type="text" id="lembTitulo" placeholder="Ex: Aniversário da Maria, Pagar internet, Viagem pra Floripa..."/>
+    <label id="lembTituloLabel">Título *</label>
+    <input type="text" id="lembTitulo" placeholder="Ex: Pagar internet, Viagem pra Floripa..."/>
 
     <div id="lembDataNormalWrap" style="display:none">
       <label>Data *</label>
@@ -601,7 +601,7 @@ function abrirCriar(){
     setTimeout(()=>{ campo.focus(); campo.select(); }, 50);
   }
   else if(ativa==='consultas') abrirModal('modalConsultaOverlay');
-  else if(ativa==='lembretes') abrirModal('modalLembreteOverlay');
+  else if(ativa==='lembretes'){ abrirModal('modalLembreteOverlay'); alternarCamposLembrete(); }
   else abrirModalReceita();
 }
 function abrirModal(id){ document.getElementById(id).classList.add('on'); }
@@ -721,7 +721,7 @@ async function buscarAvisosProximos(){
       horario:c.horario, icone: c.tipo==='exame'?'🧪':(c.tipo==='dentista'?'🦷':'🩺'),
     })),
     ...(lembretesProx||[]).map(l=>({
-      id:l.id, titulo:l.titulo, data:l.data,
+      id:l.id, titulo:(l.categoria==='aniversario'?'Aniversário de ':'')+l.titulo, data:l.data,
       horario:null, icone: iconesLembrete[l.categoria]||'📌',
     })),
   ];
@@ -851,6 +851,8 @@ function alternarCamposLembrete(){
   document.getElementById('lembDataNormalWrap').style.display = ehAniversario ? 'none' : 'block';
   document.getElementById('lembDataAniversarioWrap').style.display = ehAniversario ? 'block' : 'none';
   document.getElementById('lembRepeteWrap').style.display = ehAniversario ? 'block' : 'none';
+  document.getElementById('lembTituloLabel').textContent = ehAniversario ? 'Nome da pessoa *' : 'Título *';
+  document.getElementById('lembTitulo').placeholder = ehAniversario ? 'Ex: Ross' : 'Ex: Pagar internet, Viagem pra Floripa...';
 }
 function ehAnoBissexto(ano){ return (ano%4===0 && ano%100!==0) || ano%400===0; }
 async function criarLembrete(){
@@ -930,7 +932,7 @@ async function carregarLembretes(){
         <div class="mes">${meses[d.getMonth()]}</div>
       </div>
       <div class="consulta-info" style="flex:1">
-        <h3>${icone} ${esc(l.titulo)}${l.ano_nascimento?' <span style="font-weight:400;color:var(--ink-soft)">('+(d.getFullYear()-l.ano_nascimento)+' anos)</span>':''}</h3>
+        <h3>${icone} ${l.categoria==='aniversario'?'Aniversário de ':''}${esc(l.titulo)}${l.ano_nascimento?' <span style="font-weight:400;color:var(--ink-soft)">('+(d.getFullYear()-l.ano_nascimento)+' anos)</span>':''}</h3>
         <div class="meta">🔔 Lembrete ${l.dias_antes_lembrete} dia(s) antes por email${l.repete_anual?' • repete todo ano':''}</div>
       </div>
       <button onclick="excluirLembrete('${l.id}')" style="background:none;border:none;color:#B23A48;font-size:18px;cursor:pointer;flex-shrink:0">✕</button>
