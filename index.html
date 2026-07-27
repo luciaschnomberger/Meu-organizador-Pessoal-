@@ -121,6 +121,7 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     </div>
     <div id="signupForm" class="hidden">
       <div id="signupErr" class="err hidden"></div>
+      <input type="text" id="signupNome" placeholder="Seu nome"/>
       <input type="email" id="signupEmail" placeholder="seu@email.com"/>
       <div style="position:relative">
         <input type="password" id="signupPass" placeholder="Crie uma senha (mín. 6 caracteres)" style="padding-right:44px"/>
@@ -376,7 +377,12 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     <button class="close-x" onclick="fecharModal('modalContaOverlay')">✕</button>
     <h2>⚙️ Minha conta</h2>
     <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Logada como:</p>
-    <p style="font-size:15px;font-weight:600;color:var(--forest);margin-bottom:24px" id="contaEmailAtual"></p>
+    <p style="font-size:15px;font-weight:600;color:var(--forest);margin-bottom:20px" id="contaEmailAtual"></p>
+    <label>Seu nome</label>
+    <input type="text" id="contaNome" placeholder="Seu nome"/>
+    <button class="btn" onclick="salvarNomeConta()">Salvar nome</button>
+    <p id="contaNomeMsg" style="font-size:12px;color:var(--forest);margin-top:6px;display:none">✓ Nome salvo!</p>
+    <div style="border-top:1px solid var(--line);margin:22px 0"></div>
     <button class="btn ghost" style="color:#B23A48;border-color:#B23A48" onclick="confirmarExcluirConta()">🗑️ Excluir minha conta e todos os dados</button>
     <p style="font-size:11px;color:var(--ink-soft);margin-top:8px">Isso apaga permanentemente suas listas, consultas e receitas. Não dá pra desfazer.</p>
   </div></div>
@@ -424,13 +430,15 @@ async function doLogin(){
   entrarNoApp();
 }
 async function doSignup(){
+  const nome = document.getElementById('signupNome').value.trim();
   const email = document.getElementById('signupEmail').value.trim();
   const pass = document.getElementById('signupPass').value;
   const errEl = document.getElementById('signupErr');
   errEl.classList.add('hidden');
+  if(!nome){ errEl.textContent='Digite seu nome.'; errEl.classList.remove('hidden'); return; }
   if(!email || !email.includes('@')){ errEl.textContent='Digite um e-mail válido.'; errEl.classList.remove('hidden'); return; }
   if(pass.length<6){ errEl.textContent='A senha precisa ter pelo menos 6 caracteres.'; errEl.classList.remove('hidden'); return; }
-  const {data, error} = await sb.auth.signUp({email, password:pass});
+  const {data, error} = await sb.auth.signUp({email, password:pass, options:{data:{nome}}});
   if(error){
     const msg = error.message||'';
     if(msg.includes('already registered')||msg.includes('already exists')) errEl.textContent = 'Esse e-mail já tem uma conta. Tenta entrar em vez de criar.';
@@ -528,7 +536,17 @@ async function checarSessao(){
 }
 function abrirConfigConta(){
   document.getElementById('contaEmailAtual').textContent = me?.email||'';
+  document.getElementById('contaNome').value = me?.user_metadata?.nome||'';
+  document.getElementById('contaNomeMsg').style.display = 'none';
   abrirModal('modalContaOverlay');
+}
+async function salvarNomeConta(){
+  const nome = document.getElementById('contaNome').value.trim();
+  if(!nome){ alert('Digite um nome.'); return; }
+  const {data, error} = await sb.auth.updateUser({data:{nome}});
+  if(error){ alert('Erro ao salvar: '+error.message); return; }
+  me = data.user;
+  document.getElementById('contaNomeMsg').style.display = 'block';
 }
 async function confirmarExcluirConta(){
   if(!confirm('Isso vai apagar TODAS as suas listas, consultas e receitas, e seu login, permanentemente. Não dá pra desfazer. Tem certeza?')) return;
