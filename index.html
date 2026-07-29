@@ -112,7 +112,7 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
       <div id="loginErr" class="err hidden"></div>
       <input type="email" id="loginEmail" placeholder="seu@email.com"/>
       <div style="position:relative">
-        <input type="password" id="loginPass" placeholder="Senha" style="padding-right:44px"/>
+        <input type="password" id="loginPass" placeholder="Senha" autocomplete="off" style="padding-right:44px"/>
         <button type="button" onclick="togglePwd('loginPass',this)" style="position:absolute;right:10px;top:11px;background:none;border:none;cursor:pointer;font-size:16px">👁️</button>
       </div>
       <button class="btn" onclick="doLogin()">Entrar</button>
@@ -121,7 +121,6 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     </div>
     <div id="signupForm" class="hidden">
       <div id="signupErr" class="err hidden"></div>
-      <input type="text" id="signupNome" placeholder="Seu nome"/>
       <input type="email" id="signupEmail" placeholder="seu@email.com"/>
       <div style="position:relative">
         <input type="password" id="signupPass" placeholder="Crie uma senha (mín. 6 caracteres)" style="padding-right:44px"/>
@@ -168,7 +167,6 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     <div class="tab on" data-tab="listas" onclick="showSection('listas')">📝 Listas</div>
     <div class="tab" data-tab="consultas" onclick="showSection('consultas')">🩺 Saúde</div>
     <div class="tab" data-tab="receitas" onclick="showSection('receitas')">🍲 Receitas</div>
-    <div class="tab" data-tab="lembretes" onclick="showSection('lembretes')">🔔 Lembretes</div>
   </div>
 
   <div class="content">
@@ -188,12 +186,6 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     <div class="section" id="sec-receitas">
       <div class="section-head"><h2>Suas receitas</h2></div>
       <div class="receitas-grid" id="receitasContainer"></div>
-    </div>
-
-    <!-- LEMBRETES -->
-    <div class="section" id="sec-lembretes">
-      <div class="section-head"><h2>Lembretes</h2></div>
-      <div id="lembretesContainer"></div>
     </div>
   </div>
 
@@ -251,82 +243,7 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     <input type="text" id="consLocal" placeholder="Ex: Clínica Central, sala 4"/>
     <label>Observações</label>
     <textarea id="consObs" rows="2" placeholder="Ex: Precisa de jejum de 8h, levar exames anteriores..."></textarea>
-    <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
-      <input type="checkbox" id="consQuerLembrete" onchange="document.getElementById('consDiasAntesWrap').style.display=this.checked?'block':'none'" style="width:auto"/>
-      Quero receber lembrete por email
-    </label>
-    <div id="consDiasAntesWrap" style="display:none">
-      <label>Avisar com quantos dias de antecedência</label>
-      <select id="consDiasAntes">
-        <option value="1">1 dia antes</option>
-        <option value="3">3 dias antes</option>
-        <option value="7">7 dias antes</option>
-      </select>
-    </div>
     <button class="btn plum" onclick="criarConsulta()">Salvar</button>
-  </div></div>
-</div>
-
-<!-- MODAL: Novo Lembrete -->
-<div class="modal-overlay" id="modalLembreteOverlay" onclick="fecharModalSeForFundo(event,'modalLembreteOverlay')">
-  <div class="modal"><div class="modal-inner">
-    <button class="close-x" onclick="fecharModal('modalLembreteOverlay')">✕</button>
-    <h2>Novo lembrete</h2>
-    <label>Categoria *</label>
-    <select id="lembCategoria" onchange="alternarCamposLembrete()">
-      <option value="aniversario">🎂 Aniversário</option>
-      <option value="viagem">✈️ Viagem</option>
-      <option value="conta">💰 Conta</option>
-      <option value="outro">📌 Outro</option>
-    </select>
-    <label id="lembTituloLabel">Título *</label>
-    <input type="text" id="lembTitulo" placeholder="Ex: Pagar internet, Viagem pra Floripa..."/>
-
-    <div id="lembDataNormalWrap" style="display:none">
-      <label>Data *</label>
-      <input type="date" id="lembData"/>
-    </div>
-
-    <div id="lembDataAniversarioWrap">
-      <label>Dia e mês do aniversário *</label>
-      <div style="display:flex;gap:10px">
-        <select id="lembDiaAniv" style="flex:1">
-          <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-          <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-          <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-          <option value="10">10</option><option value="11">11</option><option value="12">12</option>
-          <option value="13">13</option><option value="14">14</option><option value="15">15</option>
-          <option value="16">16</option><option value="17">17</option><option value="18">18</option>
-          <option value="19">19</option><option value="20">20</option><option value="21">21</option>
-          <option value="22">22</option><option value="23">23</option><option value="24">24</option>
-          <option value="25">25</option><option value="26">26</option><option value="27">27</option>
-          <option value="28">28</option><option value="29">29</option><option value="30">30</option>
-          <option value="31">31</option>
-        </select>
-        <select id="lembMesAniv" style="flex:2">
-          <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
-          <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
-          <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
-          <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
-        </select>
-      </div>
-      <label>Ano de nascimento (opcional)</label>
-      <input type="number" id="lembAnoNascimento" placeholder="Ex: 1990 — deixe em branco se não souber" min="1900" max="2026"/>
-    </div>
-
-    <div id="lembRepeteWrap">
-      <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
-        <input type="checkbox" id="lembRepeteAnual" checked style="width:auto"/>
-        Repetir todo ano
-      </label>
-    </div>
-    <label>Avisar com quantos dias de antecedência</label>
-    <select id="lembDiasAntes">
-      <option value="1">1 dia antes</option>
-      <option value="3" selected>3 dias antes</option>
-      <option value="7">7 dias antes</option>
-    </select>
-    <button class="btn plum" onclick="criarLembrete()">Salvar</button>
   </div></div>
 </div>
 
@@ -366,7 +283,7 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
   <div class="modal"><div class="modal-inner">
     <button class="close-x" onclick="fecharModal('modalAvisosOverlay')">✕</button>
     <h2>🔔 Avisos próximos</h2>
-    <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Consultas, exames e lembretes de hoje e amanhã</p>
+    <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Consultas e exames de hoje e amanhã</p>
     <div id="avisosConteudo"></div>
   </div></div>
 </div>
@@ -377,12 +294,7 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     <button class="close-x" onclick="fecharModal('modalContaOverlay')">✕</button>
     <h2>⚙️ Minha conta</h2>
     <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Logada como:</p>
-    <p style="font-size:15px;font-weight:600;color:var(--forest);margin-bottom:20px" id="contaEmailAtual"></p>
-    <label>Seu nome</label>
-    <input type="text" id="contaNome" placeholder="Seu nome"/>
-    <button class="btn" onclick="salvarNomeConta()">Salvar nome</button>
-    <p id="contaNomeMsg" style="font-size:12px;color:var(--forest);margin-top:6px;display:none">✓ Nome salvo!</p>
-    <div style="border-top:1px solid var(--line);margin:22px 0"></div>
+    <p style="font-size:15px;font-weight:600;color:var(--forest);margin-bottom:24px" id="contaEmailAtual"></p>
     <button class="btn ghost" style="color:#B23A48;border-color:#B23A48" onclick="confirmarExcluirConta()">🗑️ Excluir minha conta e todos os dados</button>
     <p style="font-size:11px;color:var(--ink-soft);margin-top:8px">Isso apaga permanentemente suas listas, consultas e receitas. Não dá pra desfazer.</p>
   </div></div>
@@ -430,15 +342,13 @@ async function doLogin(){
   entrarNoApp();
 }
 async function doSignup(){
-  const nome = document.getElementById('signupNome').value.trim();
   const email = document.getElementById('signupEmail').value.trim();
   const pass = document.getElementById('signupPass').value;
   const errEl = document.getElementById('signupErr');
   errEl.classList.add('hidden');
-  if(!nome){ errEl.textContent='Digite seu nome.'; errEl.classList.remove('hidden'); return; }
   if(!email || !email.includes('@')){ errEl.textContent='Digite um e-mail válido.'; errEl.classList.remove('hidden'); return; }
   if(pass.length<6){ errEl.textContent='A senha precisa ter pelo menos 6 caracteres.'; errEl.classList.remove('hidden'); return; }
-  const {data, error} = await sb.auth.signUp({email, password:pass, options:{data:{nome}}});
+  const {data, error} = await sb.auth.signUp({email, password:pass});
   if(error){
     const msg = error.message||'';
     if(msg.includes('already registered')||msg.includes('already exists')) errEl.textContent = 'Esse e-mail já tem uma conta. Tenta entrar em vez de criar.';
@@ -536,17 +446,7 @@ async function checarSessao(){
 }
 function abrirConfigConta(){
   document.getElementById('contaEmailAtual').textContent = me?.email||'';
-  document.getElementById('contaNome').value = me?.user_metadata?.nome||'';
-  document.getElementById('contaNomeMsg').style.display = 'none';
   abrirModal('modalContaOverlay');
-}
-async function salvarNomeConta(){
-  const nome = document.getElementById('contaNome').value.trim();
-  if(!nome){ alert('Digite um nome.'); return; }
-  const {data, error} = await sb.auth.updateUser({data:{nome}});
-  if(error){ alert('Erro ao salvar: '+error.message); return; }
-  me = data.user;
-  document.getElementById('contaNomeMsg').style.display = 'block';
 }
 async function confirmarExcluirConta(){
   if(!confirm('Isso vai apagar TODAS as suas listas, consultas e receitas, e seu login, permanentemente. Não dá pra desfazer. Tem certeza?')) return;
@@ -580,7 +480,6 @@ function entrarNoApp(){
   carregarConsultas();
   verificarAvisosProximos();
   carregarReceitas();
-  carregarLembretes();
   verificarAvisosProximos();
 }
 
@@ -601,7 +500,6 @@ function abrirCriar(){
     setTimeout(()=>{ campo.focus(); campo.select(); }, 50);
   }
   else if(ativa==='consultas') abrirModal('modalConsultaOverlay');
-  else if(ativa==='lembretes'){ abrirModal('modalLembreteOverlay'); alternarCamposLembrete(); }
   else abrirModalReceita();
 }
 function abrirModal(id){ document.getElementById(id).classList.add('on'); }
@@ -707,26 +605,10 @@ async function buscarAvisosProximos(){
   const daqui2dias = new Date(hoje); daqui2dias.setDate(hoje.getDate()+2);
   const hojeStr = hoje.toISOString().split('T')[0];
   const daqui2diasStr = daqui2dias.toISOString().split('T')[0];
-
-  const {data:consultasProx} = await sb.from('consultas').select('*')
+  const {data:proximas} = await sb.from('consultas').select('*')
     .gte('data_consulta', hojeStr).lte('data_consulta', daqui2diasStr)
     .eq('concluida', false).order('data_consulta');
-
-  const {data:lembretesProx} = await sb.from('lembretes').select('*')
-    .gte('data', hojeStr).lte('data', daqui2diasStr).order('data');
-
-  const unificados = [
-    ...(consultasProx||[]).map(c=>({
-      id:c.id, titulo:c.especialidade, data:c.data_consulta,
-      horario:c.horario, icone: c.tipo==='exame'?'🧪':(c.tipo==='dentista'?'🦷':'🩺'),
-    })),
-    ...(lembretesProx||[]).map(l=>({
-      id:l.id, titulo:(l.categoria==='aniversario'?'Aniversário de ':'')+l.titulo, data:l.data,
-      horario:null, icone: iconesLembrete[l.categoria]||'📌',
-    })),
-  ];
-  unificados.sort((a,b)=> a.data < b.data ? -1 : 1);
-  return unificados;
+  return proximas||[];
 }
 async function verificarAvisosProximos(){
   const proximas = await buscarAvisosProximos();
@@ -738,8 +620,8 @@ async function verificarAvisosProximos(){
   if(naoVistos.length){
     badge.classList.remove('hidden');
     const p = naoVistos[0];
-    const ehHoje = p.data === hojeStr;
-    banner.innerHTML = `🔔 ${ehHoje?'Hoje':'Em breve'}: ${p.icone} ${esc(p.titulo)}${p.horario?' às '+p.horario.slice(0,5):''}${naoVistos.length>1?' (+'+(naoVistos.length-1)+' outro(s))':''} — <u>toca pra ver</u>`;
+    const ehHoje = p.data_consulta === hojeStr;
+    banner.innerHTML = `🔔 ${ehHoje?'Hoje':'Em breve'}: ${esc(p.especialidade)}${p.horario?' às '+p.horario.slice(0,5):''}${naoVistos.length>1?' (+'+(naoVistos.length-1)+' outro(s))':''} — <u>toca pra ver</u>`;
     banner.classList.remove('hidden');
   } else {
     badge.classList.add('hidden');
@@ -752,13 +634,13 @@ async function mostrarAvisos(){
   const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const cont = document.getElementById('avisosConteudo');
   if(!proximas.length){
-    cont.innerHTML = `<div class="empty-state"><div class="emoji">🔔</div><p>Nenhum aviso no momento — nada previsto pros próximos 2 dias.</p></div>`;
+    cont.innerHTML = `<div class="empty-state"><div class="emoji">🔔</div><p>Nenhum aviso no momento — sem consultas ou exames nos próximos 2 dias.</p></div>`;
   } else {
     cont.innerHTML = proximas.map(p=>{
-      const d = new Date(p.data+'T00:00:00');
-      const ehHoje = p.data === hojeStr;
+      const d = new Date(p.data_consulta+'T00:00:00');
+      const ehHoje = p.data_consulta === hojeStr;
       return `<div class="card-item" style="margin-bottom:10px">
-        <strong style="color:var(--forest)">${p.icone} ${esc(p.titulo)}</strong><br>
+        <strong style="color:var(--forest)">${esc(p.especialidade)}</strong><br>
         <span style="font-size:13px;color:var(--ink-soft)">${ehHoje?'📍 HOJE':'📅 '+d.getDate()+' de '+meses[d.getMonth()]}${p.horario?' às '+p.horario.slice(0,5):''}</span>
       </div>`;
     }).join('');
@@ -797,7 +679,6 @@ async function carregarConsultas(){
         <h3 style="${c.concluida?'text-decoration:line-through':''}">${icone} ${esc(c.especialidade)}</h3>
         <div class="meta">${c.medico?esc(c.medico)+' • ':''}${c.horario?c.horario.slice(0,5)+' • ':''}${esc(c.local||'')}</div>
         ${c.observacoes?`<div class="meta" style="margin-top:4px;font-style:italic">${esc(c.observacoes)}</div>`:''}
-        ${c.quer_lembrete?`<div class="meta" style="color:var(--forest);margin-top:4px">🔔 Lembrete ${c.dias_antes_lembrete} dia(s) antes por email</div>`:''}
         ${c.concluida?'<div class="meta" style="color:var(--forest);font-weight:600;margin-top:4px">✓ Concluído</div>':''}
       </div>
       <button onclick="excluirConsulta('${c.id}')" style="background:none;border:none;color:#B23A48;font-size:18px;cursor:pointer;flex-shrink:0">✕</button>
@@ -816,7 +697,6 @@ async function criarConsulta(){
   if(!especialidade || !data_consulta){ alert('Preencha especialidade/nome e data.'); return; }
   const hojeStr = new Date().toISOString().split('T')[0];
   if(data_consulta < hojeStr){ alert('Essa data já passou! Escolhe uma data de hoje em diante.'); return; }
-  const querLembrete = document.getElementById('consQuerLembrete').checked;
   const {error} = await sb.from('consultas').insert({
     user_id: me.id, especialidade,
     tipo: document.getElementById('consTipo').value,
@@ -825,14 +705,9 @@ async function criarConsulta(){
     horario: document.getElementById('consHorario').value||null,
     local: document.getElementById('consLocal').value.trim()||null,
     observacoes: document.getElementById('consObs').value.trim()||null,
-    quer_lembrete: querLembrete,
-    dias_antes_lembrete: querLembrete ? parseInt(document.getElementById('consDiasAntes').value) : null,
-    lembrete_enviado: false,
   });
   if(error){ console.error('Erro ao criar consulta:', error); alert('Erro ao salvar: '+error.message); return; }
   ['consEspecialidade','consMedico','consData','consHorario','consLocal','consObs'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('consQuerLembrete').checked = false;
-  document.getElementById('consDiasAntesWrap').style.display = 'none';
   fecharModal('modalConsultaOverlay');
   carregarConsultas();
   verificarAvisosProximos();
@@ -841,108 +716,6 @@ async function excluirConsulta(id){
   if(!confirm('Excluir esta consulta?')) return;
   await sb.from('consultas').delete().eq('id', id);
   carregarConsultas();
-  verificarAvisosProximos();
-}
-
-// ===== LEMBRETES =====
-const iconesLembrete = {aniversario:'🎂', viagem:'✈️', conta:'💰', outro:'📌'};
-function alternarCamposLembrete(){
-  const ehAniversario = document.getElementById('lembCategoria').value === 'aniversario';
-  document.getElementById('lembDataNormalWrap').style.display = ehAniversario ? 'none' : 'block';
-  document.getElementById('lembDataAniversarioWrap').style.display = ehAniversario ? 'block' : 'none';
-  document.getElementById('lembRepeteWrap').style.display = ehAniversario ? 'block' : 'none';
-  document.getElementById('lembTituloLabel').textContent = ehAniversario ? 'Nome da pessoa *' : 'Título *';
-  document.getElementById('lembTitulo').placeholder = ehAniversario ? 'Ex: Ross' : 'Ex: Pagar internet, Viagem pra Floripa...';
-}
-function ehAnoBissexto(ano){ return (ano%4===0 && ano%100!==0) || ano%400===0; }
-async function criarLembrete(){
-  const titulo = document.getElementById('lembTitulo').value.trim();
-  const categoria = document.getElementById('lembCategoria').value;
-  const ehAniversario = categoria==='aniversario';
-  let data, repeteAnual, anoNascimento = null;
-
-  if(ehAniversario){
-    const dia = parseInt(document.getElementById('lembDiaAniv').value);
-    let mes = parseInt(document.getElementById('lembMesAniv').value);
-    const anoNascInput = document.getElementById('lembAnoNascimento').value.trim();
-    if(anoNascInput) anoNascimento = parseInt(anoNascInput);
-    if(!titulo){ alert('Preencha o título.'); return; }
-    const hojeD = new Date(); hojeD.setHours(0,0,0,0);
-    let ano = hojeD.getFullYear();
-    let diaAjustado = dia;
-    if(mes===2 && dia===29 && !ehAnoBissexto(ano)) diaAjustado = 28;
-    let candidata = `${ano}-${String(mes).padStart(2,'0')}-${String(diaAjustado).padStart(2,'0')}`;
-    if(candidata < hojeD.toISOString().split('T')[0]){
-      ano++;
-      if(mes===2 && dia===29 && !ehAnoBissexto(ano)) diaAjustado = 28; else diaAjustado = dia;
-      candidata = `${ano}-${String(mes).padStart(2,'0')}-${String(diaAjustado).padStart(2,'0')}`;
-    }
-    data = candidata;
-    repeteAnual = document.getElementById('lembRepeteAnual').checked;
-  } else {
-    data = document.getElementById('lembData').value;
-    if(!titulo || !data){ alert('Preencha título e data.'); return; }
-    repeteAnual = false;
-  }
-
-  const {error} = await sb.from('lembretes').insert({
-    user_id: me.id, titulo, categoria, data,
-    repete_anual: repeteAnual,
-    ano_nascimento: anoNascimento,
-    dias_antes_lembrete: parseInt(document.getElementById('lembDiasAntes').value),
-    lembrete_enviado: false,
-  });
-  if(error){ console.error('Erro ao criar lembrete:', error); alert('Erro ao salvar: '+error.message); return; }
-  ['lembTitulo','lembData','lembAnoNascimento'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('lembCategoria').value = 'aniversario';
-  document.getElementById('lembRepeteAnual').checked = true;
-  alternarCamposLembrete();
-  fecharModal('modalLembreteOverlay');
-  carregarLembretes();
-  verificarAvisosProximos();
-}
-async function carregarLembretes(){
-  const {data:lembretes} = await sb.from('lembretes').select('*').order('data');
-  const cont = document.getElementById('lembretesContainer');
-  if(!lembretes || !lembretes.length){
-    cont.innerHTML = `<div class="empty-state"><div class="emoji">🔔</div><p>Nenhum lembrete ainda. Toca no + pra adicionar!</p></div>`;
-    return;
-  }
-  const hojeStr = new Date().toISOString().split('T')[0];
-  // Lembretes anuais que já passaram: joga pra mesma data no próximo ano e reabre o aviso
-  for(const l of lembretes){
-    if(l.repete_anual && l.data < hojeStr){
-      const [ano, mes, dia] = l.data.split('-');
-      let novoAno = parseInt(ano);
-      let novaData = `${novoAno}-${mes}-${dia}`;
-      while(novaData < hojeStr){ novoAno++; novaData = `${novoAno}-${mes}-${dia}`; }
-      await sb.from('lembretes').update({data:novaData, lembrete_enviado:false}).eq('id', l.id);
-      l.data = novaData;
-    }
-  }
-  lembretes.sort((a,b)=> a.data < b.data ? -1 : 1);
-  const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-  cont.innerHTML = lembretes.map(l=>{
-    const d = new Date(l.data+'T00:00:00');
-    const icone = iconesLembrete[l.categoria] || '📌';
-    return `
-    <div class="card-item consulta-card">
-      <div class="consulta-data">
-        <div class="dia">${d.getDate()}</div>
-        <div class="mes">${meses[d.getMonth()]}</div>
-      </div>
-      <div class="consulta-info" style="flex:1">
-        <h3>${icone} ${l.categoria==='aniversario'?'Aniversário de ':''}${esc(l.titulo)}${l.ano_nascimento?' <span style="font-weight:400;color:var(--ink-soft)">('+(d.getFullYear()-l.ano_nascimento)+' anos)</span>':''}</h3>
-        <div class="meta">🔔 Lembrete ${l.dias_antes_lembrete} dia(s) antes por email${l.repete_anual?' • repete todo ano':''}</div>
-      </div>
-      <button onclick="excluirLembrete('${l.id}')" style="background:none;border:none;color:#B23A48;font-size:18px;cursor:pointer;flex-shrink:0">✕</button>
-    </div>`;
-  }).join('');
-}
-async function excluirLembrete(id){
-  if(!confirm('Excluir este lembrete?')) return;
-  await sb.from('lembretes').delete().eq('id', id);
-  carregarLembretes();
   verificarAvisosProximos();
 }
 
