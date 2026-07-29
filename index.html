@@ -1,686 +1,1037 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lúcia Schnomberger | Desenvolvedora e tradutora</title>
-<meta name="description" content="Desenvolvo aplicativos e sites, traduzo e legendo para streaming. Criadora do Orgulho de Ser. Porto Alegre, RS.">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,800&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Meu Organizador Pessoal</title>
+<link rel="manifest" href="/manifest.json"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
-  --night:#14162A;
-  --night-2:#1D2040;
-  --paper:#E8E9ED;
-  --paper-2:#DFE1E7;
-  --ink:#191B2C;
-  --muted:#5C6076;
-  --muted-dark:#9AA0BC;
-  --caption:#F2C74C;
-  --violet:#7B5CD6;
-  --line:rgba(25,27,44,.14);
-  --line-night:rgba(255,255,255,.14);
-  --display:"Bricolage Grotesque",system-ui,sans-serif;
-  --body:"Newsreader",Georgia,serif;
-  --mono:"IBM Plex Mono",ui-monospace,monospace;
-  --wrap:1080px;
+  --bg:#FBF3E7;
+  --bg-card:#FFFFFF;
+  --ink:#2C3E32;
+  --ink-soft:rgba(44,62,50,.6);
+  --forest:#2C4A3B;
+  --gold:#C9971F;
+  --plum:#6B2D5C;
+  --line:rgba(44,62,50,.12);
+  --radius:16px;
 }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Work Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,.display{font-family:'Fraunces',serif;}
+.hidden{display:none!important;}
 
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{
-  background:var(--paper);
-  color:var(--ink);
-  font-family:var(--body);
-  font-size:18px;
-  line-height:1.65;
-  -webkit-font-smoothing:antialiased;
-}
-img{max-width:100%;display:block}
-a{color:inherit}
+/* ===== AUTH ===== */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.auth-box{background:var(--bg-card);border-radius:24px;padding:36px 24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(44,62,50,.12);}
+.auth-box h1{font-size:23px;font-weight:700;color:var(--forest);margin-bottom:6px;line-height:1.35;}
+.auth-box p.sub{color:var(--ink-soft);font-size:14px;margin-bottom:24px;line-height:1.5;}
+input,select,textarea{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:15px;background:#fff;color:var(--ink);margin-bottom:12px;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--forest);}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;background:var(--forest);color:#fff;font-family:'Work Sans',sans-serif;font-weight:600;font-size:15px;cursor:pointer;transition:transform .15s;}
+.btn:hover{transform:translateY(-1px);}
+.btn.gold{background:var(--gold);color:#2C1800;}
+.btn.plum{background:var(--plum);}
+.btn.ghost{background:none;border:1.5px solid var(--line);color:var(--ink);}
+.link-btn{background:none;border:none;color:var(--forest);font-size:13px;cursor:pointer;text-decoration:underline;margin-top:14px;display:block;text-align:center;width:100%;font-family:inherit;}
+.err{color:#B23A48;font-size:13px;margin-bottom:10px;}
 
-.wrap{width:100%;max-width:var(--wrap);margin:0 auto;padding:0 28px}
+/* ===== APP SHELL ===== */
+#app{display:none;min-height:100vh;}
+nav{background:var(--forest);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+nav .logo{color:#fff;font-family:'Fraunces',serif;font-size:20px;font-weight:600;}
+nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer;font-family:'Work Sans',sans-serif;}
+.tabs{display:flex;gap:8px;padding:16px 20px 0;max-width:720px;margin:0 auto;}
+.tab{flex:1;text-align:center;padding:12px 8px;border-radius:12px 12px 0 0;background:rgba(44,74,59,.06);color:var(--ink-soft);cursor:pointer;font-weight:600;font-size:14px;transition:all .2s;}
+.tab.on{background:var(--bg-card);color:var(--forest);}
+.content{max-width:720px;margin:0 auto;padding:20px;padding-bottom:80px;}
+.section{display:none;}
+.section.on{display:block;}
 
-.eyebrow{
-  font-family:var(--mono);font-size:12px;font-weight:500;
-  letter-spacing:.16em;text-transform:uppercase;
-  color:var(--muted);display:flex;align-items:center;gap:10px;margin-bottom:22px;
-}
-.eyebrow::before{content:"";width:4px;height:15px;background:var(--caption);flex:none}
-.on-night .eyebrow{color:var(--muted-dark)}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.section-head h2{font-size:24px;color:var(--forest);}
 
-/* ---------- nav ---------- */
-.nav{position:sticky;top:0;z-index:50;background:var(--night);border-bottom:1px solid var(--line-night)}
-.nav-in{display:flex;align-items:center;justify-content:space-between;height:58px;gap:16px}
-.mark{
-  font-family:var(--mono);font-size:12.5px;font-weight:500;letter-spacing:.15em;
-  color:#fff;text-decoration:none;white-space:nowrap;
-}
-.mark span{color:var(--caption)}
-.nav-links{display:flex;gap:24px;list-style:none}
-.nav-links a{
-  font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--muted-dark);text-decoration:none;transition:color .2s;
-}
-.nav-links a:hover{color:var(--caption)}
-.lbl-curta{display:none}
+.card-item{background:var(--bg-card);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;box-shadow:0 2px 10px rgba(44,62,50,.06);}
+.empty-state{text-align:center;padding:60px 20px;color:var(--ink-soft);}
+.empty-state .emoji{font-size:48px;margin-bottom:12px;}
 
-.night{background:var(--night);color:#fff}
-.band{padding:96px 0}
+/* Listas */
+.lista-card{cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+.lista-card .info h3{font-size:17px;color:var(--forest);margin-bottom:2px;}
+.lista-card .info span{font-size:12px;color:var(--ink-soft);}
+.item-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+.item-row:last-child{border-bottom:none;}
+.item-row input[type=checkbox]{width:20px;height:20px;margin:0;accent-color:var(--forest);flex-shrink:0;}
+.item-row span{flex:1;font-size:15px;}
+.item-row span.feito{text-decoration:line-through;color:var(--ink-soft);}
+.item-row button{background:none;border:none;color:#B23A48;font-size:18px;cursor:pointer;padding:4px 8px;}
 
-/* ---------- hero ---------- */
-.hero{padding:76px 0 84px;position:relative;overflow:hidden}
-.hero::after{
-  content:"";position:absolute;inset:auto -10% -60% 40%;height:60vh;
-  background:radial-gradient(ellipse at center,rgba(123,92,214,.30),transparent 62%);
-  pointer-events:none;
-}
-.hero-in{position:relative;z-index:1}
-.hero-top{display:flex;align-items:center;gap:26px;margin-bottom:36px}
+/* Consultas */
+.consulta-card{display:flex;gap:14px;align-items:flex-start;}
+.consulta-data{background:var(--forest);color:#fff;border-radius:12px;padding:10px 12px;text-align:center;min-width:60px;flex-shrink:0;}
+.consulta-data .dia{font-size:22px;font-weight:700;font-family:'Fraunces',serif;line-height:1;}
+.consulta-data .mes{font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+.consulta-info h3{font-size:16px;color:var(--forest);}
+.consulta-info .meta{font-size:13px;color:var(--ink-soft);margin-top:2px;}
 
-.portrait{
-  width:104px;height:104px;flex:none;border-radius:50%;
-  border:2px solid var(--caption);overflow:hidden;position:relative;background:var(--night-2);
-}
-.portrait img{width:100%;height:100%;object-fit:cover;position:relative;z-index:2}
-.portrait .initials{
-  position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;
-  font-family:var(--display);font-size:34px;font-weight:600;color:var(--caption);
-}
+/* Receitas */
+.receitas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
+.receita-card{background:var(--bg-card);border-radius:var(--radius);overflow:hidden;cursor:pointer;box-shadow:0 2px 10px rgba(44,62,50,.06);}
+.receita-card .foto{width:100%;height:110px;background:linear-gradient(135deg,var(--forest),var(--plum));display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;}
+.receita-card .foto img{width:100%;height:100%;object-fit:cover;}
+.receita-card .info{padding:10px 12px;}
+.receita-card h3{font-size:14px;color:var(--forest);}
+.receita-card .meta{font-size:11px;color:var(--ink-soft);margin-top:2px;}
 
-h1{
-  font-family:var(--display);font-weight:800;
-  font-size:clamp(1.95rem,5vw,3.4rem);line-height:1.02;letter-spacing:-.03em;color:#fff;
-}
-.role{
-  font-family:var(--mono);font-size:12.5px;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--muted-dark);margin-top:12px;
-}
-.role b{color:var(--caption);font-weight:500}
+.fab{position:fixed;bottom:24px;right:24px;width:58px;height:58px;border-radius:50%;background:var(--gold);color:#2C1800;border:none;font-size:28px;cursor:pointer;box-shadow:0 8px 24px rgba(201,151,31,.4);z-index:40;}
 
-.cue{
-  max-width:660px;border:1px solid var(--line-night);border-left:4px solid var(--caption);
-  background:rgba(255,255,255,.035);padding:24px 26px;
-}
-.cue-text{
-  font-family:var(--display);font-weight:500;
-  font-size:clamp(1.15rem,2.7vw,1.6rem);line-height:1.34;color:#fff;
-  min-height:2.7em;transition:opacity .45s ease;
-}
-.cue-text.out{opacity:0}
-.cue-dots{display:flex;gap:8px;margin-top:22px}
-.cue-dot{
-  width:30px;height:3px;background:rgba(255,255,255,.22);
-  border:none;padding:0;cursor:pointer;transition:background .35s ease;
-}
-.cue-dot:hover{background:var(--muted-dark)}
-.cue-dot.ativo{background:var(--caption)}
-
-.cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
-.btn{
-  font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;
-  padding:14px 24px;text-decoration:none;border:1px solid transparent;transition:.2s;
-}
-.btn-solid{background:var(--caption);color:var(--night);font-weight:500}
-.btn-solid:hover{background:#fff}
-.btn-ghost{border-color:var(--line-night);color:#fff}
-.btn-ghost:hover{border-color:var(--caption);color:var(--caption)}
-
-/* ---------- sobre ---------- */
-.about-grid{display:grid;grid-template-columns:1.55fr 1fr;gap:56px;align-items:start}
-.lede{
-  font-family:var(--display);font-weight:500;
-  font-size:clamp(1.3rem,2.9vw,1.75rem);line-height:1.32;letter-spacing:-.015em;margin-bottom:26px;
-}
-.about-grid p+p{margin-top:16px}
-.about-grid p{color:#33364d}
-
-.facts{border-top:2px solid var(--ink);padding-top:18px}
-.facts dt{
-  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--muted);margin-top:18px;
-}
-.facts dt:first-child{margin-top:0}
-.facts dd{font-size:16.5px;margin-top:3px}
-
-/* ---------- projetos ---------- */
-.projects{background:var(--paper-2)}
-.feature{
-  background:#fff;border:1px solid var(--line);border-left:5px solid var(--violet);
-  padding:38px 40px;margin-bottom:22px;
-}
-.feature-grid{display:grid;grid-template-columns:212px 1fr;gap:40px;align-items:start}
-.feature-grid.sem-imagem{grid-template-columns:1fr}
-.feature-grid.sem-imagem .shot{display:none}
-.shot{
-  border:1px solid var(--line);border-radius:16px;overflow:hidden;
-  background:var(--night);line-height:0;
-}
-.shot img{width:100%}
-.feature-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px;margin-bottom:6px}
-.feature h3{font-family:var(--display);font-size:2rem;font-weight:600;letter-spacing:-.02em}
-.live{
-  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
-  color:#186B3A;background:#DFF3E6;padding:5px 10px;border-radius:2px;
-}
-.feature .kicker{
-  font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--violet);margin-bottom:16px;
-}
-.feature p{color:#33364d;max-width:64ch}
-.tags{display:flex;flex-wrap:wrap;gap:7px;margin:22px 0 26px}
-.tag{font-family:var(--mono);font-size:11.5px;color:var(--muted);border:1px solid var(--line);padding:5px 10px}
-.textlink{
-  font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;
-  text-decoration:none;border-bottom:2px solid var(--caption);padding-bottom:3px;transition:.2s;
-}
-.textlink:hover{border-bottom-color:var(--violet)}
-
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
-.card{background:#fff;border:1px solid var(--line);padding:28px 30px}
-.card-construcao{margin-top:22px;text-align:center;max-width:52ch;margin-left:auto;margin-right:auto}
-.card-construcao p{text-wrap:balance}
-.card .feature-head{margin-bottom:10px}
-.shot-wide{border-radius:10px;margin-bottom:20px;aspect-ratio:16/9;background:var(--night)}
-.shot-wide img{width:100%;height:100%;object-fit:cover;object-position:top left}
-.card h3{font-family:var(--display);font-size:1.3rem;font-weight:600;margin-bottom:8px}
-.card .feature-head h3{margin-bottom:0}
-.card p{font-size:16.5px;color:#33364d;margin-bottom:18px}
-
-/* ---------- tradução ---------- */
-.trans-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
-.trans-grid .lede{color:#fff}
-.trans-grid p{color:var(--muted-dark)}
-.svc{list-style:none;border-top:1px solid var(--line-night)}
-.svc li{padding:19px 0;border-bottom:1px solid var(--line-night)}
-.svc b{display:block;font-family:var(--display);font-weight:600;font-size:1.08rem;color:#fff;margin-bottom:3px}
-.svc span{font-size:16px;color:var(--muted-dark)}
-.svc.on-light{border-top-color:var(--line)}
-.svc.on-light li{border-bottom-color:var(--line)}
-.svc.on-light b{color:var(--ink)}
-.svc.on-light span{color:var(--muted)}
-.subhead{
-  font-family:var(--display);font-weight:600;font-size:1.15rem;
-  margin:34px 0 16px;padding-top:26px;border-top:2px solid var(--ink);
-}
-
-/* ---------- jogo: capa e vídeos ---------- */
-.game-feature{border-left-color:var(--caption)}
-.game-cover{
-  position:relative;overflow:hidden;border-radius:16px;
-  background:linear-gradient(135deg,var(--violet),var(--night));
-  padding:32px 34px;display:flex;align-items:center;justify-content:space-between;gap:20px;
-  min-height:170px;
-}
-.game-cover-text{
-  position:relative;z-index:2;background:rgba(15,16,32,.55);
-  padding:18px 22px;border-radius:12px;
-}
-.game-cover-text h3{
-  font-family:var(--display);font-weight:800;letter-spacing:-.02em;
-  font-size:clamp(1.8rem,4vw,2.6rem);color:#fff;line-height:1;
-}
-.game-cover-text .game-cover-sub{
-  font-family:var(--body);color:#fff;
-  margin-top:10px;font-size:16px;max-width:34ch;
-}
-.game-cover-img{max-height:190px;flex:none;filter:drop-shadow(0 10px 22px rgba(0,0,0,.35))}
-
-.game-videos{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:24px 0 26px}
-.video-label{
-  font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--violet);margin-bottom:10px;
-}
-.video-wrap{position:relative;width:100%;padding-top:56.25%;border-radius:10px;overflow:hidden;background:var(--night)}
-.video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-
-@media (max-width:700px){
-  .game-cover{flex-direction:column;text-align:center;padding:26px 22px}
-  .game-cover-img{max-height:150px}
-  .game-videos{grid-template-columns:1fr}
-}
-.lede-cred{margin-bottom:34px;max-width:34ch}
-.credits-cols{display:grid;grid-template-columns:1fr 1fr;gap:48px}
-.cred-label{
-  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--violet);margin-bottom:14px;
-}
-.cred-list{list-style:none}
-.cred-list li{
-  font-family:var(--display);font-weight:500;font-size:1.02rem;color:var(--ink);
-  padding:10px 0;border-bottom:1px solid var(--line);
-}
-.cred-list li i{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:8px}
-.cred-more{font-size:15.5px;color:var(--muted);margin-top:30px;font-style:italic;max-width:62ch}
-
-/* ---------- formação ---------- */
-.tl{list-style:none;border-left:1px solid var(--line);margin-left:6px}
-.tl li{position:relative;padding:0 0 30px 30px}
-.tl li:last-child{padding-bottom:0}
-.tl li::before{
-  content:"";position:absolute;left:-5px;top:8px;width:9px;height:9px;
-  background:var(--paper);border:2px solid var(--ink);border-radius:50%;
-}
-.tl li.now::before{background:var(--caption);border-color:var(--caption)}
-.tl .when{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.tl h3{font-family:var(--display);font-size:1.22rem;font-weight:600;margin:3px 0 0}
-
-/* ---------- contato ---------- */
-.contact{padding:92px 0 40px}
-.contact h2{
-  font-family:var(--display);font-weight:800;letter-spacing:-.03em;line-height:1;
-  font-size:clamp(2.1rem,6vw,3.6rem);color:#fff;margin-bottom:18px;
-}
-.contact p{color:var(--muted-dark);max-width:54ch;margin-bottom:34px}
-.links{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:70px}
-.foot{
-  border-top:1px solid var(--line-night);padding-top:22px;
-  font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;color:var(--muted-dark);
-  display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;
-}
-
-a:focus-visible,.btn:focus-visible{outline:3px solid var(--caption);outline-offset:3px}
-
-.ao-topo{
-  position:fixed;right:22px;bottom:22px;z-index:60;
-  width:48px;height:48px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  background:var(--caption);color:var(--night);text-decoration:none;
-  font-size:22px;line-height:1;font-family:var(--display);font-weight:600;
-  box-shadow:0 6px 20px rgba(0,0,0,.28);
-  opacity:0;visibility:hidden;transform:translateY(10px);
-  transition:opacity .3s ease,transform .3s ease,visibility .3s;
-}
-.ao-topo.ver{opacity:1;visibility:visible;transform:none}
-.ao-topo:hover{background:#fff}
-.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
-.reveal.in{opacity:1;transform:none}
-
-@media (max-width:800px){
-  body{font-size:17px}
-  .band{padding:66px 0}
-  .hero{padding:52px 0 62px}
-  .nav-links{gap:15px}
-  .mark{font-size:11px;letter-spacing:.08em}
-  .about-grid,.trans-grid,.credits-cols{grid-template-columns:1fr;gap:38px}
-  .feature-grid{grid-template-columns:1fr;gap:28px}
-  .shot{max-width:190px}
-  .feature{padding:30px 26px}
-  .hero-top{gap:18px}
-  .portrait{width:78px;height:78px}
-}
-@media (max-width:560px){
-  .mark{display:none}
-  .nav-in{justify-content:center;position:relative}
-  .nav{
-    -webkit-mask-image:linear-gradient(to right,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%);
-    mask-image:linear-gradient(to right,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%);
-  }
-  .nav-links{
-    width:100%;justify-content:flex-start;gap:16px;
-    overflow-x:auto;-webkit-overflow-scrolling:touch;
-    padding:0 18px;
-  }
-  .nav-links a{font-size:10px;letter-spacing:.03em;white-space:nowrap}
-  .lbl-full{display:none}
-  .lbl-curta{display:inline}
-  .hero-top{flex-direction:column;align-items:flex-start;gap:20px}
-  h1{font-size:7.6vw;line-height:1.05}
-  .btn{padding:13px 18px;font-size:11.5px}
-}
-@media (prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
-  *{animation:none!important;transition:none!important}
-  .reveal{opacity:1;transform:none}
-}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(44,62,50,.5);z-index:100;align-items:flex-end;justify-content:center;}
+.modal-overlay.on{display:flex;}
+.modal{background:var(--bg-card);border-radius:24px 24px 0 0;max-width:480px;width:100%;max-height:88vh;overflow-y:auto;padding:26px 22px 30px;}
+.modal h2{color:var(--forest);font-size:22px;margin-bottom:16px;}
+.modal label{font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
+.close-x{position:absolute;top:16px;right:20px;background:none;border:none;font-size:22px;color:var(--ink-soft);cursor:pointer;}
+.modal-inner{position:relative;}
+.ing-row{display:flex;gap:8px;margin-bottom:8px;}
+.ing-row input{margin-bottom:0;}
+.ing-row button{background:none;border:none;color:#B23A48;font-size:20px;cursor:pointer;flex-shrink:0;}
 </style>
 </head>
 <body>
 
-<nav class="nav">
-  <div class="wrap nav-in">
-    <a class="mark" href="#topo">LÚCIA SCHNOMBERGER<span>▌</span></a>
-    <ul class="nav-links">
-      <li><a href="#sobre">Sobre</a></li>
-      <li><a href="#servicos">Serviços</a></li>
-      <li><a href="#projetos"><span class="lbl-full">Projetos de Tecnologia</span><span class="lbl-curta">Tecnologia</span></a></li>
-      <li><a href="#traducao"><span class="lbl-full">Tradução e Legendagem</span><span class="lbl-curta">Tradução</span></a></li>
-      <li><a href="#formacao">Formação</a></li>
-      <li><a href="#contato">Contato</a></li>
-    </ul>
-  </div>
-</nav>
-
-<header class="hero night on-night" id="topo">
-  <div class="wrap hero-in">
-
-    <div class="hero-top">
-      <div class="portrait">
-        <span class="initials">LS</span>
-        <img src="foto.jpg" alt="Retrato de Lúcia Schnomberger" id="foto">
+<!-- AUTH -->
+<div id="authScreen" class="auth-wrap">
+  <div class="auth-box">
+    <h1>📋 Meu Organizador Pessoal</h1>
+    <p class="sub" id="authSub">Listas, consultas e receitas — tudo num só lugar.</p>
+    <div id="loginForm">
+      <div id="loginErr" class="err hidden"></div>
+      <input type="email" id="loginEmail" placeholder="seu@email.com"/>
+      <div style="position:relative">
+        <input type="password" id="loginPass" placeholder="Senha" style="padding-right:44px"/>
+        <button type="button" onclick="togglePwd('loginPass',this)" style="position:absolute;right:10px;top:11px;background:none;border:none;cursor:pointer;font-size:16px">👁️</button>
       </div>
-      <div>
-        <h1>Lúcia Schnomberger</h1>
-        <p class="role">Desenvolvedora · Tradutora · <b>Legendadora</b></p>
+      <button class="btn" onclick="doLogin()">Entrar</button>
+      <button class="link-btn" onclick="toggleAuth('signup')">Não tem conta? Criar agora</button>
+      <button class="link-btn" onclick="abrirEsqueciSenha()">Esqueci minha senha</button>
+    </div>
+    <div id="signupForm" class="hidden">
+      <div id="signupErr" class="err hidden"></div>
+      <input type="text" id="signupNome" placeholder="Seu nome"/>
+      <input type="email" id="signupEmail" placeholder="seu@email.com"/>
+      <div style="position:relative">
+        <input type="password" id="signupPass" placeholder="Crie uma senha (mín. 6 caracteres)" style="padding-right:44px"/>
+        <button type="button" onclick="togglePwd('signupPass',this)" style="position:absolute;right:10px;top:11px;background:none;border:none;cursor:pointer;font-size:16px">👁️</button>
       </div>
+      <button class="btn gold" onclick="doSignup()">Criar conta</button>
+      <button class="link-btn" onclick="toggleAuth('login')">Já tem conta? Entrar</button>
     </div>
-
-    <div class="cue">
-      <p class="cue-text" id="cue">Sou bióloga de formação, tradutora e legendadora de profissão.</p>
-      <div class="cue-dots" id="dots"></div>
+    <div id="codigoForm" class="hidden">
+      <p style="font-size:14px;color:var(--ink-soft);margin-bottom:14px;line-height:1.5">Enviamos um código pro seu e-mail (<strong id="codigoEmailMostrado"></strong>). Confere a caixa de entrada e o spam.</p>
+      <div id="codigoErr" class="err hidden"></div>
+      <input type="text" id="codigoInput" placeholder="Cole o código aqui" inputmode="numeric"/>
+      <button class="btn gold" onclick="confirmarCodigo()">Confirmar código</button>
+      <button class="link-btn" onclick="reenviarCodigo()">Reenviar código</button>
     </div>
-
-    <div class="cta-row">
-      <a class="btn btn-solid" href="#contato">Falar comigo</a>
-      <a class="btn btn-ghost" href="#projetos">Ver o que eu construí</a>
+    <div id="esqueciForm" class="hidden">
+      <p style="font-size:14px;color:var(--ink-soft);margin-bottom:14px;line-height:1.5">Digite seu e-mail — vamos mandar um link pra você criar uma senha nova.</p>
+      <div id="esqueciErr" class="err hidden"></div>
+      <input type="email" id="esqueciEmail" placeholder="seu@email.com"/>
+      <button class="btn" onclick="enviarRecuperacaoSenha()">Enviar link de recuperação</button>
+      <button class="link-btn" onclick="toggleAuth('login')">Voltar pro login</button>
     </div>
-
-  </div>
-</header>
-
-<section class="band" id="sobre">
-  <div class="wrap reveal">
-    <p class="eyebrow">Sobre</p>
-    <div class="about-grid">
-      <div>
-        <p class="lede">Passei anos traduzindo e legendando o que outras pessoas criaram. Em algum momento, resolvi aprender a criar também.</p>
-        <p>Minha formação começou na biologia, seguiu para a tradução e hoje está na tecnologia. Parece uma linha torta, mas é sempre o mesmo trabalho: entender um sistema complexo e traduzi-lo para quem precisa usar.</p>
-        <p>Foi dessa virada que nasceu o Orgulho de Ser, um aplicativo de relacionamento e comunidade para pessoas LGBTQIA+ que eu desenvolvi do banco de dados até o sistema de pagamento. Ele está no ar, com pessoas reais usando e assinando. Não é projeto de curso, é produto.</p>
-        <p>Hoje eu faço as duas coisas: desenvolvo aplicativos e sites, e sigo trabalhando com tradução, versão, legendagem e revisão de qualidade para streaming. As duas áreas se alimentam muito mais do que eu imaginava.</p>
-      </div>
-
-      <dl class="facts">
-        <dt>Onde</dt><dd>Porto Alegre, RS. Atendo remoto.</dd>
-        <dt>Idiomas</dt><dd>Português (nativo) e inglês (avançado)</dd>
-        <dt>Aberta a</dt><dd>Projetos, parcerias e vagas na área de tecnologia</dd>
-      </dl>
+    <div id="novaSenhaForm" class="hidden">
+      <p style="font-size:14px;color:var(--ink-soft);margin-bottom:14px;line-height:1.5">Digite sua nova senha.</p>
+      <div id="novaSenhaErr" class="err hidden"></div>
+      <input type="password" id="novaSenhaInput" placeholder="Nova senha (mín. 6 caracteres)"/>
+      <button class="btn gold" onclick="salvarNovaSenha()">Salvar nova senha</button>
     </div>
   </div>
-</section>
+</div>
 
-<section class="band night on-night" id="servicos">
-  <div class="wrap reveal">
-    <p class="eyebrow">Serviços</p>
-    <div class="trans-grid">
-      <div>
-        <p class="lede">Legendar é encaixar sentido dentro de um limite. Programar também.</p>
-        <p>Desenvolvo aplicativos e sites do banco de dados até a publicação. Também trabalho com tradução e versão entre o português e o inglês, legendagem para plataformas de streaming e revisão de qualidade de legendagem, dublagem e outros conteúdos. É um ofício de precisão: o tempo de leitura, o número de caracteres e o tom de quem fala precisam caber todos na mesma linha.</p>
-        <p>Entre as duas áreas, também faço um trabalho que junta as duas: adaptar um aplicativo ou site inteiro para outro idioma, cuidando do texto e do código ao mesmo tempo.</p>
-      </div>
-
-      <ul class="svc">
-        <li><b>Desenvolvimento de sites e aplicativos</b><span>Do banco de dados até a publicação</span></li>
-        <li><b>Legendagem</b><span>Conteúdo audiovisual em geral, para diferentes plataformas</span></li>
-        <li><b>Tradução e versão</b><span>Do inglês para o português e do português para o inglês</span></li>
-        <li><b>Revisão e controle de qualidade</b><span>Legendagem, dublagem e outros trabalhos de tradução, incluindo pós-edição de tradução automática (MTPE)</span></li>
-        <li><b>Localização de software</b><span>Adaptação de aplicativos e sites para outro idioma</span></li>
-      </ul>
+<!-- APP -->
+<div id="app">
+  <nav>
+    <div class="logo">📋 Organizador Pessoal</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="mostrarAvisos()" style="position:relative;padding:8px 12px;font-size:16px" title="Avisos">🔔<span id="avisoBadge" class="hidden" style="position:absolute;top:2px;right:2px;background:#B23A48;color:#fff;font-size:10px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center">!</span></button>
+      <button onclick="abrirConfigConta()" style="font-size:13px" title="Minha conta">⚙️</button>
+      <button onclick="doLogout()">Sair</button>
     </div>
+  </nav>
+  <div id="avisoBanner" class="hidden" style="background:#C9971F;color:#2C1800;padding:10px 20px;text-align:center;font-size:13px;font-weight:600;cursor:pointer" onclick="mostrarAvisos()"></div>
+  <div class="tabs">
+    <div class="tab on" data-tab="listas" onclick="showSection('listas')">📝 Listas</div>
+    <div class="tab" data-tab="consultas" onclick="showSection('consultas')">🩺 Saúde</div>
+    <div class="tab" data-tab="receitas" onclick="showSection('receitas')">🍲 Receitas</div>
+    <div class="tab" data-tab="lembretes" onclick="showSection('lembretes')">🔔 Lembretes</div>
   </div>
-</section>
 
-<section class="band projects" id="projetos">
-  <div class="wrap reveal">
-    <p class="eyebrow">Projetos de tecnologia</p>
-
-    <article class="feature">
-      <div class="feature-grid">
-        <div class="shot">
-          <img src="app.png" data-alternativas="App_Orgulho_de_ser.png|app.PNG|App_Orgulho_de_ser.PNG" alt="Tela inicial do aplicativo Orgulho de Ser" class="opcional">
-        </div>
-        <div>
-          <div class="feature-head">
-            <h3>Orgulho de Ser</h3>
-            <span class="live">No ar</span>
-          </div>
-          <p class="kicker">Aplicativo · Criado e mantido por mim</p>
-          <p>Aplicativo de relacionamento e comunidade para pessoas LGBTQIA+. Tem perfis individuais e de casal, sistema de curtidas e matches, conversa em tempo real, agenda de eventos da comunidade, filtros de descoberta, moderação de conteúdo e assinatura paga integrada. Desenvolvi tudo, do banco de dados à publicação.</p>
-          <div class="tags">
-            <span class="tag">HTML · CSS · JavaScript</span>
-            <span class="tag">Supabase</span>
-            <span class="tag">PostgreSQL</span>
-            <span class="tag">Vercel</span>
-            <span class="tag">Cloudflare</span>
-            <span class="tag">Mercado Pago</span>
-            <span class="tag">PWA</span>
-          </div>
-          <a class="textlink" href="https://orgulhodeser.app.br" target="_blank" rel="noopener">Abrir o aplicativo ↗</a>
-        </div>
-      </div>
-    </article>
-
-    <div class="cards">
-      <article class="card card-img">
-        <div class="shot shot-wide">
-          <img src="organizador-lembretes.png" data-alternativas="organizador.png|organizador.PNG|Organizador.png" alt="Tela do aplicativo Organizador Pessoal, aba Lembretes" class="opcional">
-        </div>
-        <div class="feature-head">
-          <h3>Organizador Pessoal</h3>
-          <span class="live">No ar</span>
-        </div>
-        <p>Aplicativo para organizar a vida em um lugar só: listas personalizadas, um caderno de receitas com ingredientes e modo de preparo, controle de consultas e exames médicos, e uma aba de lembretes (aniversário, viagem, conta e outros), com aviso automático por email configurável para cada item. Os emails são enviados por uma função que roda sozinha todo dia, checando o banco de dados e disparando o aviso na antecedência escolhida pela pessoa. Tem conta própria, com login, confirmação por e-mail e recuperação de senha.</p>
-        <div class="tags">
-          <span class="tag">HTML · CSS · JavaScript</span>
-          <span class="tag">Supabase</span>
-          <span class="tag">PostgreSQL</span>
-          <span class="tag">Edge Functions</span>
-          <span class="tag">Resend</span>
-          <span class="tag">Vercel</span>
-        </div>
-        <a class="textlink" href="https://meuorganizadorpessoal.vercel.app" target="_blank" rel="noopener">Abrir o aplicativo ↗</a>
-      </article>
+  <div class="content">
+    <!-- LISTAS -->
+    <div class="section on" id="sec-listas">
+      <div class="section-head"><h2>Suas listas</h2></div>
+      <div id="listasContainer"></div>
     </div>
 
-    <article class="feature game-feature">
-      <div class="game-cover">
-        <div class="game-cover-text">
-          <p class="kicker" style="color:var(--caption);margin-bottom:8px">Jogo · Python + Pygame</p>
-          <h3>SUPER ANCK</h3>
-          <p class="game-cover-sub">um jogo de plataforma estrelado pela minha gata Ancksunamum</p>
-        </div>
-        <img src="anck_gato.png" alt="Ancksunamum, a gata que inspirou o jogo, vestida de Pikachu" class="game-cover-img opcional">
-      </div>
-
-      <p style="margin-top:24px">Jogo de plataforma 2D feito do zero em Python, com física de pulo, pulo duplo, inimigos com comportamentos diferentes, item de estrela com invencibilidade temporária e chefão final. Empacotado em <code>.exe</code> para jogar sem instalar nada.</p>
-
-      <div class="tags">
-        <span class="tag">Python</span>
-        <span class="tag">Pygame</span>
-      </div>
-
-      <div class="game-videos">
-        <div>
-          <p class="video-label">Vitória</p>
-          <div class="video-wrap">
-            <iframe src="https://www.youtube.com/embed/5cEGF1pa_H0" title="Super Anck - Vitória" frameborder="0" allowfullscreen loading="lazy"></iframe>
-          </div>
-        </div>
-        <div>
-          <p class="video-label">Game Over</p>
-          <div class="video-wrap">
-            <iframe src="https://www.youtube.com/embed/ZZFTyPAZKFM" title="Super Anck - Game Over" frameborder="0" allowfullscreen loading="lazy"></iframe>
-          </div>
-        </div>
-      </div>
-
-      <div class="cta-row" style="margin-top:0">
-        <a class="btn btn-solid" style="padding:12px 20px" href="https://github.com/luciaschnomberger/super-anck/releases/download/v1.0/super_anck.exe" target="_blank" rel="noopener">Baixar o jogo (.exe)</a>
-        <a class="textlink" style="align-self:center" href="https://github.com/luciaschnomberger/super-anck" target="_blank" rel="noopener">Ver código no GitHub ↗</a>
-      </div>
-    </article>
-
-    <!-- Quando terminar um projeto novo, copie este bloco e preencha -->
-    <article class="card card-construcao">
-      <h3>Em construção</h3>
-      <p>Estou estudando banco de dados, Python e Power BI, e desenvolvendo coisas novas. O próximo projeto entra aqui assim que estiver pronto, terminado e no ar.</p>
-      <a class="textlink" href="#contato">Falar comigo</a>
-    </article>
-  </div>
-</section>
-
-
-<section class="band projects" id="traducao">
-  <div class="wrap reveal">
-    <p class="eyebrow">Tradução e Legendagem</p>
-    <p class="lede lede-cred">Alguns dos títulos em que trabalhei.</p>
-    <div class="credits-cols">
-      <div>
-        <p class="cred-label">Tradução com crédito em tela</p>
-        <ul class="cred-list">
-          <li>Psych <i>T1, ep. 3</i></li>
-          <li>Em Busca do Amor</li>
-          <li>AARO: All-domain Anomaly Resolution Office</li>
-        </ul>
-      </div>
-      <div>
-        <!-- Se a agência pedir, apague este bloco inteiro (do <div> até o </div>) -->
-        <p class="cred-label">Revisão e controle de qualidade</p>
-        <ul class="cred-list">
-          <li>Apaixonada pelo Meu Diabo da Máfia</li>
-          <li>Amor às Escondidas</li>
-          <li>Contra o Príncipe Sombrio</li>
-          <li>Destinos Trocados</li>
-          <li>O Amor Chega sem Avisar</li>
-          <li>Sou Filha do General</li>
-          <li>Trava do Tempo</li>
-          <li>Entre Tânia e Amor</li>
-        </ul>
-      </div>
+    <!-- CONSULTAS -->
+    <div class="section" id="sec-consultas">
+      <div class="section-head"><h2>Consultas e exames</h2></div>
+      <div id="consultasContainer"></div>
     </div>
-    <p class="cred-more">Estes são apenas alguns exemplos, entre séries, filmes e conteúdo institucional.</p>
-  </div>
-</section>
 
-<section class="band" id="formacao">
-  <div class="wrap reveal">
-    <p class="eyebrow">Formação</p>
-    <ol class="tl">
-      <li>
-        <p class="when">2009 · ULBRA</p>
-        <h3>Bacharelado em Ciências Biológicas</h3>
-      </li>
-      <li>
-        <p class="when">2022 · Estácio</p>
-        <h3>Pós-graduação em Tradução</h3>
-      </li>
-      <li class="now">
-        <p class="when">2026 a 2028 · Estácio · Cursando</p>
-        <h3>Tecnólogo em Banco de Dados</h3>
-      </li>
-      <li class="now">
-        <p class="when">Em andamento · Hashtag Treinamentos</p>
-        <h3>Python, SQL, Power BI e Agentes de IA</h3>
-      </li>
-    </ol>
-  </div>
-</section>
-
-<footer class="night on-night contact" id="contato">
-  <div class="wrap reveal">
-    <h2>Vamos conversar</h2>
-    <p>Desenvolvo aplicativos e sites, traduzo e legendo. Se você tem um projeto em mente, uma vaga ou só uma dúvida, me escreve. Respondo rápido.</p>
-    <div class="links">
-      <a class="btn btn-solid" href="mailto:lucia.schnomberger@gmail.com">Enviar email</a>
-      <a class="btn btn-ghost" href="https://www.linkedin.com/in/l%C3%BAcia-schnomberger" target="_blank" rel="noopener">LinkedIn</a>
-      <a class="btn btn-ghost" href="https://github.com/luciaschnomberger" target="_blank" rel="noopener">GitHub</a>
+    <!-- RECEITAS -->
+    <div class="section" id="sec-receitas">
+      <div class="section-head"><h2>Suas receitas</h2></div>
+      <div class="receitas-grid" id="receitasContainer"></div>
     </div>
-    <div class="foot">
-      <span>© <span id="ano">2026</span> Lúcia Schnomberger</span>
-      <span>Porto Alegre, RS ▌</span>
+
+    <!-- LEMBRETES -->
+    <div class="section" id="sec-lembretes">
+      <div class="section-head"><h2>Lembretes</h2></div>
+      <div id="lembretesContainer"></div>
     </div>
   </div>
-</footer>
 
-<a href="#topo" class="ao-topo" id="aoTopo" aria-label="Voltar ao topo">↑</a>
+  <button class="fab" onclick="abrirCriar()">+</button>
+</div>
+
+<!-- MODAL: Nova Lista -->
+<div class="modal-overlay" id="modalListaOverlay" onclick="fecharModalSeForFundo(event,'modalListaOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalListaOverlay')">✕</button>
+    <h2>Nova lista</h2>
+    <label>Nome da lista</label>
+    <input type="text" id="novaListaNome" placeholder="Ex: Lista de Tarefas, Compras do mês..."/>
+    <button class="btn" onclick="criarLista()">Criar lista</button>
+  </div></div>
+</div>
+
+<!-- MODAL: Ver/editar lista -->
+<div class="modal-overlay" id="modalVerListaOverlay" onclick="fecharModalSeForFundo(event,'modalVerListaOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalVerListaOverlay')">✕</button>
+    <h2 id="verListaTitulo"></h2>
+    <div id="itensContainer" style="margin-bottom:16px"></div>
+    <div id="itemErr" class="err hidden" style="margin-bottom:8px"></div>
+    <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">Adicionar item</label>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="novoItemTexto" placeholder="Ex: Comprar leite" style="margin-bottom:0" onkeydown="if(event.key==='Enter')adicionarItem()"/>
+      <button class="btn gold" style="width:auto;padding:12px 20px;white-space:nowrap" onclick="adicionarItem()">+ Adicionar</button>
+    </div>
+    <button class="btn ghost" style="margin-top:20px;color:#B23A48;border-color:#B23A48" onclick="excluirListaAtual()">🗑️ Excluir esta lista</button>
+  </div></div>
+</div>
+
+<!-- MODAL: Nova Consulta -->
+<div class="modal-overlay" id="modalConsultaOverlay" onclick="fecharModalSeForFundo(event,'modalConsultaOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalConsultaOverlay')">✕</button>
+    <h2>Nova consulta / exame</h2>
+    <label>Tipo *</label>
+    <select id="consTipo">
+      <option value="consulta">🩺 Consulta médica</option>
+      <option value="exame">🧪 Exame</option>
+      <option value="dentista">🦷 Dentista</option>
+      <option value="outro">📌 Outro</option>
+    </select>
+    <label>Especialidade / nome *</label>
+    <input type="text" id="consEspecialidade" placeholder="Ex: Cardiologia, Hemograma, Limpeza..."/>
+    <label>Médico(a) / local do exame</label>
+    <input type="text" id="consMedico" placeholder="Ex: Dr. João Silva"/>
+    <label>Data *</label>
+    <input type="date" id="consData" onclick="this.min=new Date().toISOString().split('T')[0]"/>
+    <label>Horário</label>
+    <input type="time" id="consHorario"/>
+    <label>Local</label>
+    <input type="text" id="consLocal" placeholder="Ex: Clínica Central, sala 4"/>
+    <label>Observações</label>
+    <textarea id="consObs" rows="2" placeholder="Ex: Precisa de jejum de 8h, levar exames anteriores..."></textarea>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
+      <input type="checkbox" id="consQuerLembrete" onchange="document.getElementById('consDiasAntesWrap').style.display=this.checked?'block':'none'" style="width:auto"/>
+      Quero receber lembrete por email
+    </label>
+    <div id="consDiasAntesWrap" style="display:none">
+      <label>Avisar com quantos dias de antecedência</label>
+      <select id="consDiasAntes">
+        <option value="1">1 dia antes</option>
+        <option value="3">3 dias antes</option>
+        <option value="7">7 dias antes</option>
+      </select>
+    </div>
+    <button class="btn plum" onclick="criarConsulta()">Salvar</button>
+  </div></div>
+</div>
+
+<!-- MODAL: Novo Lembrete -->
+<div class="modal-overlay" id="modalLembreteOverlay" onclick="fecharModalSeForFundo(event,'modalLembreteOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalLembreteOverlay')">✕</button>
+    <h2>Novo lembrete</h2>
+    <label>Categoria *</label>
+    <select id="lembCategoria" onchange="alternarCamposLembrete()">
+      <option value="aniversario">🎂 Aniversário</option>
+      <option value="viagem">✈️ Viagem</option>
+      <option value="conta">💰 Conta</option>
+      <option value="outro">📌 Outro</option>
+    </select>
+    <label id="lembTituloLabel">Título *</label>
+    <input type="text" id="lembTitulo" placeholder="Ex: Pagar internet, Viagem pra Floripa..."/>
+
+    <div id="lembDataNormalWrap" style="display:none">
+      <label>Data *</label>
+      <input type="date" id="lembData"/>
+    </div>
+
+    <div id="lembDataAniversarioWrap">
+      <label>Dia e mês do aniversário *</label>
+      <div style="display:flex;gap:10px">
+        <select id="lembDiaAniv" style="flex:1">
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+          <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+          <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+          <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+          <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+          <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+          <option value="19">19</option><option value="20">20</option><option value="21">21</option>
+          <option value="22">22</option><option value="23">23</option><option value="24">24</option>
+          <option value="25">25</option><option value="26">26</option><option value="27">27</option>
+          <option value="28">28</option><option value="29">29</option><option value="30">30</option>
+          <option value="31">31</option>
+        </select>
+        <select id="lembMesAniv" style="flex:2">
+          <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+          <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+          <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+          <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+        </select>
+      </div>
+      <label>Ano de nascimento (opcional)</label>
+      <input type="number" id="lembAnoNascimento" placeholder="Ex: 1990 — deixe em branco se não souber" min="1900" max="2026"/>
+    </div>
+
+    <div id="lembRepeteWrap">
+      <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
+        <input type="checkbox" id="lembRepeteAnual" checked style="width:auto"/>
+        Repetir todo ano
+      </label>
+    </div>
+    <label>Avisar com quantos dias de antecedência</label>
+    <select id="lembDiasAntes">
+      <option value="1">1 dia antes</option>
+      <option value="3" selected>3 dias antes</option>
+      <option value="7">7 dias antes</option>
+    </select>
+    <button class="btn plum" onclick="criarLembrete()">Salvar</button>
+  </div></div>
+</div>
+
+<!-- MODAL: Nova Receita -->
+<div class="modal-overlay" id="modalReceitaOverlay" onclick="fecharModalSeForFundo(event,'modalReceitaOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalReceitaOverlay')">✕</button>
+    <h2>Nova receita</h2>
+    <label>Nome da receita *</label>
+    <input type="text" id="recNome" placeholder="Ex: Bolo de cenoura"/>
+    <label>Foto (opcional)</label>
+    <input type="file" id="recFoto" accept="image/*"/>
+    <div style="display:flex;gap:10px">
+      <div style="flex:1"><label>Tempo de preparo</label><input type="text" id="recTempo" placeholder="Ex: 40 min"/></div>
+      <div style="flex:1"><label>Porções</label><input type="number" id="recPorcoes" placeholder="Ex: 8"/></div>
+    </div>
+    <label>Ingredientes</label>
+    <div id="ingredientesContainer"></div>
+    <button type="button" class="link-btn" style="text-align:left;margin:0 0 12px" onclick="adicionarCampoIngrediente()">+ Adicionar ingrediente</button>
+    <label>Modo de preparo</label>
+    <textarea id="recModoPreparo" rows="5" placeholder="Descreva o passo a passo..."></textarea>
+    <button class="btn gold" onclick="criarReceita()">Salvar receita</button>
+  </div></div>
+</div>
+
+<!-- MODAL: Ver Receita -->
+<div class="modal-overlay" id="modalVerReceitaOverlay" onclick="fecharModalSeForFundo(event,'modalVerReceitaOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalVerReceitaOverlay')">✕</button>
+    <div id="verReceitaConteudo"></div>
+    <button class="btn ghost" style="margin-top:16px;color:#B23A48;border-color:#B23A48" onclick="excluirReceitaAtual()">🗑️ Excluir esta receita</button>
+  </div></div>
+</div>
+
+<!-- MODAL: Avisos -->
+<div class="modal-overlay" id="modalAvisosOverlay" onclick="fecharModalSeForFundo(event,'modalAvisosOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalAvisosOverlay')">✕</button>
+    <h2>🔔 Avisos próximos</h2>
+    <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Consultas, exames e lembretes de hoje e amanhã</p>
+    <div id="avisosConteudo"></div>
+  </div></div>
+</div>
+
+<!-- MODAL: Minha Conta -->
+<div class="modal-overlay" id="modalContaOverlay" onclick="fecharModalSeForFundo(event,'modalContaOverlay')">
+  <div class="modal"><div class="modal-inner">
+    <button class="close-x" onclick="fecharModal('modalContaOverlay')">✕</button>
+    <h2>⚙️ Minha conta</h2>
+    <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Logada como:</p>
+    <p style="font-size:15px;font-weight:600;color:var(--forest);margin-bottom:20px" id="contaEmailAtual"></p>
+    <label>Seu nome</label>
+    <input type="text" id="contaNome" placeholder="Seu nome"/>
+    <button class="btn" onclick="salvarNomeConta()">Salvar nome</button>
+    <p id="contaNomeMsg" style="font-size:12px;color:var(--forest);margin-top:6px;display:none">✓ Nome salvo!</p>
+    <div style="border-top:1px solid var(--line);margin:22px 0"></div>
+    <button class="btn ghost" style="color:#B23A48;border-color:#B23A48" onclick="confirmarExcluirConta()">🗑️ Excluir minha conta e todos os dados</button>
+    <p style="font-size:11px;color:var(--ink-soft);margin-top:8px">Isso apaga permanentemente suas listas, consultas e receitas. Não dá pra desfazer.</p>
+  </div></div>
+</div>
 
 <script>
-var f = document.getElementById('foto');
-f.addEventListener('error', function(){ f.style.display = 'none'; });
+const SUPABASE_URL = 'https://ecxnzwyzfodrmxldddbc.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_5d0kuLDSLtKgaAqgkp9HjQ_GoPvq4qf';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-document.querySelectorAll('.opcional').forEach(function(img){
-  var alternativas = (img.getAttribute('data-alternativas') || '').split('|').filter(Boolean);
-  img.addEventListener('error', function(){
-    if (alternativas.length) { img.src = alternativas.shift(); return; }
-    var grid = img.closest('.feature-grid');
-    if (grid) { grid.classList.add('sem-imagem'); }
+let me = null;
+let listaAtualId = null;
+let receitaAtualId = null;
+
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ===== AUTH =====
+let emailPendente = '';
+function toggleAuth(qual){
+  ['loginForm','signupForm','codigoForm','esqueciForm','novaSenhaForm'].forEach(id=>{
+    document.getElementById(id).classList.toggle('hidden', id!==qual+'Form');
   });
-});
-
-document.getElementById('ano').textContent = new Date().getFullYear();
-
-var btnTopo = document.getElementById('aoTopo');
-window.addEventListener('scroll', function(){
-  if (window.scrollY > 600) { btnTopo.classList.add('ver'); }
-  else { btnTopo.classList.remove('ver'); }
-}, { passive: true });
-
-var falas = [
-  "Sou bióloga de formação, tradutora e legendadora de profissão.",
-  "Há um tempo, decidi aprender a construir as coisas, não só traduzi-las.",
-  "Hoje eu desenvolvo aplicativos e sites, e sigo legendando para streaming.",
-  "Se você tem um projeto em mente, vamos conversar."
-];
-
-var elCue = document.getElementById('cue'),
-    elDots = document.getElementById('dots'),
-    calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    atual = 0,
-    timer = null;
-
-falas.forEach(function(_, n){
-  var b = document.createElement('button');
-  b.className = 'cue-dot';
-  b.type = 'button';
-  b.setAttribute('aria-label', 'Mostrar frase ' + (n + 1) + ' de ' + falas.length);
-  b.addEventListener('click', function(){
-    mostrar(n);
-    rodar();
-  });
-  elDots.appendChild(b);
-});
-
-var botoes = elDots.querySelectorAll('.cue-dot');
-
-function marcar(n){
-  botoes.forEach(function(b, j){ b.classList.toggle('ativo', j === n); });
+}
+function togglePwd(id, btn){
+  const el = document.getElementById(id);
+  const mostrando = el.type === 'text';
+  el.type = mostrando ? 'password' : 'text';
+  btn.textContent = mostrando ? '👁️' : '🙈';
+}
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.classList.add('hidden');
+  if(!email || !pass){ errEl.textContent='Preencha e-mail e senha.'; errEl.classList.remove('hidden'); return; }
+  const {data, error} = await sb.auth.signInWithPassword({email, password:pass});
+  if(error){
+    const msg = error.message||'';
+    if(msg.includes('Invalid login credentials')) errEl.textContent = 'E-mail ou senha incorretos. Verifique e tente de novo.';
+    else if(msg.includes('Email not confirmed')) errEl.textContent = 'Confirme seu e-mail antes de entrar (verifique sua caixa de entrada).';
+    else errEl.textContent = 'Erro ao entrar: '+msg;
+    errEl.classList.remove('hidden'); return;
+  }
+  me = data.user;
+  entrarNoApp();
+}
+async function doSignup(){
+  const nome = document.getElementById('signupNome').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
+  const pass = document.getElementById('signupPass').value;
+  const errEl = document.getElementById('signupErr');
+  errEl.classList.add('hidden');
+  if(!nome){ errEl.textContent='Digite seu nome.'; errEl.classList.remove('hidden'); return; }
+  if(!email || !email.includes('@')){ errEl.textContent='Digite um e-mail válido.'; errEl.classList.remove('hidden'); return; }
+  if(pass.length<6){ errEl.textContent='A senha precisa ter pelo menos 6 caracteres.'; errEl.classList.remove('hidden'); return; }
+  const {data, error} = await sb.auth.signUp({email, password:pass, options:{data:{nome}}});
+  if(error){
+    const msg = error.message||'';
+    if(msg.includes('already registered')||msg.includes('already exists')) errEl.textContent = 'Esse e-mail já tem uma conta. Tenta entrar em vez de criar.';
+    else errEl.textContent = msg;
+    errEl.classList.remove('hidden'); return;
+  }
+  // Se e-mail já tinha sido usado antes mas nunca confirmado, o Supabase retorna
+  // "sucesso" com uma lista de identities vazia — detecta esse caso também
+  if(data?.user && data.user.identities && data.user.identities.length===0){
+    errEl.textContent = 'Esse e-mail já tem uma conta. Tenta entrar, ou usa "Esqueci minha senha".';
+    errEl.classList.remove('hidden'); return;
+  }
+  if(data?.session){
+    // confirmação de e-mail desligada no projeto — já entra direto
+    me = data.session.user;
+    entrarNoApp();
+    return;
+  }
+  // Precisa confirmar por código
+  emailPendente = email;
+  document.getElementById('codigoEmailMostrado').textContent = email;
+  toggleAuth('codigo');
+}
+async function confirmarCodigo(){
+  const codigo = document.getElementById('codigoInput').value.trim();
+  const errEl = document.getElementById('codigoErr');
+  errEl.classList.add('hidden');
+  if(!codigo){ errEl.textContent='Digite o código que chegou no seu e-mail.'; errEl.classList.remove('hidden'); return; }
+  const {data, error} = await sb.auth.verifyOtp({email: emailPendente, token: codigo, type:'signup'});
+  if(error){
+    errEl.textContent = error.message.includes('expired') ? 'Código expirado. Pede um novo abaixo.' : 'Código incorreto. Confere e tenta de novo.';
+    errEl.classList.remove('hidden'); return;
+  }
+  if(data?.session){ me = data.session.user; entrarNoApp(); }
+}
+async function reenviarCodigo(){
+  const {error} = await sb.auth.resend({type:'signup', email: emailPendente});
+  const errEl = document.getElementById('codigoErr');
+  errEl.classList.remove('hidden');
+  errEl.style.color = error ? '#B23A48' : '#2C4A3B';
+  errEl.textContent = error ? error.message : 'Novo código enviado! Confere seu e-mail.';
+}
+function abrirEsqueciSenha(){
+  toggleAuth('esqueci');
+}
+async function enviarRecuperacaoSenha(){
+  const email = document.getElementById('esqueciEmail').value.trim();
+  const errEl = document.getElementById('esqueciErr');
+  errEl.classList.add('hidden');
+  if(!email){ errEl.textContent='Digite seu e-mail.'; errEl.classList.remove('hidden'); return; }
+  const {error} = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+  errEl.classList.remove('hidden');
+  errEl.style.color = error ? '#B23A48' : '#2C4A3B';
+  errEl.textContent = error ? error.message : 'Link enviado! Confere seu e-mail (e o spam) e clica nele pra criar uma senha nova.';
+}
+async function salvarNovaSenha(){
+  const novaSenha = document.getElementById('novaSenhaInput').value;
+  const errEl = document.getElementById('novaSenhaErr');
+  errEl.classList.add('hidden');
+  if(novaSenha.length<6){ errEl.textContent='A senha precisa ter pelo menos 6 caracteres.'; errEl.classList.remove('hidden'); return; }
+  const {error} = await sb.auth.updateUser({password: novaSenha});
+  if(error){
+    const msg = error.message||'';
+    if(msg.includes('should be different from the old password')) errEl.textContent = 'A nova senha precisa ser diferente da senha atual.';
+    else if(msg.includes('Password should be at least')) errEl.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
+    else if(msg.includes('session') || msg.includes('expired')) errEl.textContent = 'O link expirou. Pede um novo em "Esqueci minha senha".';
+    else errEl.textContent = msg;
+    errEl.classList.remove('hidden'); return;
+  }
+  alert('Senha alterada com sucesso! Você já pode usar a conta normalmente.');
+  history.replaceState(null,'',window.location.pathname);
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){ me = session.user; entrarNoApp(); }
+}
+async function doLogout(){
+  await sb.auth.signOut();
+  me = null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('authScreen').style.display='flex';
+  document.getElementById('loginPass').value='';
+  toggleAuth('login');
+}
+async function checarSessao(){
+  // Verifica se veio de um link de redefinição de senha
+  const hashParams = new URLSearchParams(window.location.hash.replace('#',''));
+  if(hashParams.get('type') === 'recovery'){
+    const {data:{session}} = await sb.auth.getSession();
+    if(session) me = session.user;
+    document.getElementById('authScreen').style.display='flex';
+    toggleAuth('novaSenha');
+    return;
+  }
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){ me = session.user; entrarNoApp(); }
+}
+function abrirConfigConta(){
+  document.getElementById('contaEmailAtual').textContent = me?.email||'';
+  document.getElementById('contaNome').value = me?.user_metadata?.nome||'';
+  document.getElementById('contaNomeMsg').style.display = 'none';
+  abrirModal('modalContaOverlay');
+}
+async function salvarNomeConta(){
+  const nome = document.getElementById('contaNome').value.trim();
+  if(!nome){ alert('Digite um nome.'); return; }
+  const {data, error} = await sb.auth.updateUser({data:{nome}});
+  if(error){ alert('Erro ao salvar: '+error.message); return; }
+  me = data.user;
+  document.getElementById('contaNomeMsg').style.display = 'block';
+}
+async function confirmarExcluirConta(){
+  if(!confirm('Isso vai apagar TODAS as suas listas, consultas e receitas, e seu login, permanentemente. Não dá pra desfazer. Tem certeza?')) return;
+  if(!confirm('Última confirmação: excluir sua conta de vez?')) return;
+  try{
+    await sb.rpc('excluir_minha_conta_organizador');
+    const {data:{session}} = await sb.auth.getSession();
+    const token = session?.access_token;
+    if(token){
+      await fetch(SUPABASE_URL+'/functions/v1/excluir-usuario-auth',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      }).catch(e=>console.warn('Erro ao apagar login (dados já foram apagados):',e));
+    }
+    await sb.auth.signOut();
+  }catch(e){
+    console.error('Erro ao excluir conta:', e);
+  }
+  me = null;
+  fecharModal('modalContaOverlay');
+  document.getElementById('app').style.display='none';
+  document.getElementById('authScreen').style.display='flex';
+  toggleAuth('login');
+  ['loginEmail','loginPass'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
+  alert('Conta excluída. Obrigado por usar o app! 💜');
+}
+function entrarNoApp(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  carregarListas();
+  carregarConsultas();
+  verificarAvisosProximos();
+  carregarReceitas();
+  carregarLembretes();
+  verificarAvisosProximos();
 }
 
-function mostrar(n){
-  atual = n;
-  elCue.classList.add('out');
-  setTimeout(function(){
-    elCue.textContent = falas[n];
-    elCue.classList.remove('out');
-    marcar(n);
-  }, calmo ? 0 : 450);
+// ===== NAVEGAÇÃO =====
+function showSection(nome){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===nome));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('on'));
+  document.getElementById('sec-'+nome).classList.add('on');
 }
-
-function rodar(){
-  if (timer) { clearInterval(timer); timer = null; }
-  if (calmo) { return; }
-  timer = setInterval(function(){
-    if (atual >= falas.length - 1) { clearInterval(timer); timer = null; return; }
-    mostrar(atual + 1);
-  }, 5500);
+let secaoAtual='listas';
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>secaoAtual=t.dataset.tab));
+function abrirCriar(){
+  const ativa = document.querySelector('.tab.on').dataset.tab;
+  if(ativa==='listas'){
+    abrirModal('modalListaOverlay');
+    const campo = document.getElementById('novaListaNome');
+    campo.value = 'Lista de Tarefas';
+    setTimeout(()=>{ campo.focus(); campo.select(); }, 50);
+  }
+  else if(ativa==='consultas') abrirModal('modalConsultaOverlay');
+  else if(ativa==='lembretes'){ abrirModal('modalLembreteOverlay'); alternarCamposLembrete(); }
+  else abrirModalReceita();
 }
+function abrirModal(id){ document.getElementById(id).classList.add('on'); }
+function fecharModal(id){ document.getElementById(id).classList.remove('on'); }
+function fecharModalSeForFundo(e,id){ if(e.target.id===id) fecharModal(id); }
 
-marcar(0);
-rodar();
-
-var alvos = document.querySelectorAll('.reveal');
-if ('IntersectionObserver' in window && !calmo) {
-  var obs = new IntersectionObserver(function(entradas){
-    entradas.forEach(function(e){
-      if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); }
+// ===== LISTAS =====
+async function carregarListas(){
+  const {data:listas} = await sb.from('listas').select('*').order('criado_em',{ascending:false});
+  const cont = document.getElementById('listasContainer');
+  if(!listas || !listas.length){
+    cont.innerHTML = `<div class="empty-state"><div class="emoji">📝</div><p>Nenhuma lista ainda. Toca no + pra criar a primeira!</p></div>`;
+    return;
+  }
+  const comContagem = await Promise.all(listas.map(async l=>{
+    const {data:itens} = await sb.from('itens_lista').select('feito').eq('lista_id', l.id);
+    const total = itens?.length||0;
+    const feitos = itens?.filter(i=>i.feito).length||0;
+    return {...l, total, feitos};
+  }));
+  cont.innerHTML = comContagem.map(l=>`
+    <div class="card-item lista-card" data-id="${l.id}" data-nome="${esc(l.nome)}">
+      <div class="info">
+        <h3>${esc(l.nome)}</h3>
+        <span>${l.total===0?'Nenhum item ainda':l.feitos+'/'+l.total+' concluídos'}</span>
+      </div>
+      <span style="font-size:20px">→</span>
+    </div>
+  `).join('');
+  // Anexa os cliques depois de renderizar (mais seguro que onclick inline
+  // com nome de lista, que pode ter aspas ou outros caracteres especiais)
+  cont.querySelectorAll('.lista-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      abrirLista(card.dataset.id, card.dataset.nome);
     });
-  }, { threshold: 0.12 });
-  alvos.forEach(function(a){ obs.observe(a); });
-} else {
-  alvos.forEach(function(a){ a.classList.add('in'); });
+  });
 }
+async function criarLista(){
+  const nome = document.getElementById('novaListaNome').value.trim();
+  if(!nome) return;
+  if(!me?.id){ alert('Erro: sessão não encontrada. Tenta sair e entrar de novo.'); return; }
+  const {error} = await sb.from('listas').insert({user_id: me.id, nome});
+  if(error){ console.error('Erro ao criar lista:', error); alert('Erro ao criar lista: '+error.message); return; }
+  document.getElementById('novaListaNome').value='';
+  fecharModal('modalListaOverlay');
+  carregarListas();
+}
+async function abrirLista(id, nome){
+  listaAtualId = id;
+  document.getElementById('verListaTitulo').textContent = nome;
+  await carregarItens();
+  abrirModal('modalVerListaOverlay');
+}
+async function carregarItens(){
+  const {data:itens} = await sb.from('itens_lista').select('*').eq('lista_id', listaAtualId).order('criado_em');
+  const cont = document.getElementById('itensContainer');
+  if(!itens || !itens.length){ cont.innerHTML = '<p style="color:var(--ink-soft);font-size:14px;padding:8px 0">Nenhum item ainda.</p>'; return; }
+  cont.innerHTML = itens.map(i=>`
+    <div class="item-row">
+      <input type="checkbox" ${i.feito?'checked':''} onchange="marcarItem('${i.id}',this.checked)"/>
+      <span class="${i.feito?'feito':''}">${esc(i.texto)}</span>
+      <button onclick="excluirItem('${i.id}')">✕</button>
+    </div>
+  `).join('');
+}
+async function adicionarItem(){
+  const texto = document.getElementById('novoItemTexto').value.trim();
+  const errEl = document.getElementById('itemErr');
+  errEl.classList.add('hidden');
+  if(!texto) return;
+  if(!listaAtualId){ errEl.textContent='Erro: lista não identificada. Fecha e abre a lista de novo.'; errEl.classList.remove('hidden'); return; }
+  const {error} = await sb.from('itens_lista').insert({lista_id: listaAtualId, texto});
+  if(error){ console.error('Erro ao adicionar item:', error); errEl.textContent='Erro ao adicionar: '+error.message; errEl.classList.remove('hidden'); return; }
+  document.getElementById('novoItemTexto').value='';
+  await carregarItens();
+  await carregarListas();
+}
+async function marcarItem(id, feito){
+  await sb.from('itens_lista').update({feito}).eq('id', id);
+  await carregarItens();
+}
+async function excluirItem(id){
+  await sb.from('itens_lista').delete().eq('id', id);
+  await carregarItens();
+}
+async function excluirListaAtual(){
+  if(!confirm('Excluir esta lista e todos os itens dela?')) return;
+  await sb.from('listas').delete().eq('id', listaAtualId);
+  fecharModal('modalVerListaOverlay');
+  carregarListas();
+}
+
+// ===== CONSULTAS =====
+function chaveAvisosVistos(){ return 'avisosVistos_'+(me?.id||''); }
+function idsAvisosVistos(){
+  try{ return JSON.parse(localStorage.getItem(chaveAvisosVistos())||'[]'); }catch(e){ return []; }
+}
+function marcarAvisosComoVistos(ids){
+  localStorage.setItem(chaveAvisosVistos(), JSON.stringify(ids));
+}
+async function buscarAvisosProximos(){
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const daqui2dias = new Date(hoje); daqui2dias.setDate(hoje.getDate()+2);
+  const hojeStr = hoje.toISOString().split('T')[0];
+  const daqui2diasStr = daqui2dias.toISOString().split('T')[0];
+
+  const {data:consultasProx} = await sb.from('consultas').select('*')
+    .gte('data_consulta', hojeStr).lte('data_consulta', daqui2diasStr)
+    .eq('concluida', false).order('data_consulta');
+
+  const {data:lembretesProx} = await sb.from('lembretes').select('*')
+    .gte('data', hojeStr).lte('data', daqui2diasStr).order('data');
+
+  const unificados = [
+    ...(consultasProx||[]).map(c=>({
+      id:c.id, titulo:c.especialidade, data:c.data_consulta,
+      horario:c.horario, icone: c.tipo==='exame'?'🧪':(c.tipo==='dentista'?'🦷':'🩺'),
+    })),
+    ...(lembretesProx||[]).map(l=>({
+      id:l.id, titulo:(l.categoria==='aniversario'?'Aniversário de ':'')+l.titulo, data:l.data,
+      horario:null, icone: iconesLembrete[l.categoria]||'📌',
+    })),
+  ];
+  unificados.sort((a,b)=> a.data < b.data ? -1 : 1);
+  return unificados;
+}
+async function verificarAvisosProximos(){
+  const proximas = await buscarAvisosProximos();
+  const badge = document.getElementById('avisoBadge');
+  const banner = document.getElementById('avisoBanner');
+  const hojeStr = new Date().toISOString().split('T')[0];
+  const vistos = idsAvisosVistos();
+  const naoVistos = proximas.filter(p=>!vistos.includes(p.id));
+  if(naoVistos.length){
+    badge.classList.remove('hidden');
+    const p = naoVistos[0];
+    const ehHoje = p.data === hojeStr;
+    banner.innerHTML = `🔔 ${ehHoje?'Hoje':'Em breve'}: ${p.icone} ${esc(p.titulo)}${p.horario?' às '+p.horario.slice(0,5):''}${naoVistos.length>1?' (+'+(naoVistos.length-1)+' outro(s))':''} — <u>toca pra ver</u>`;
+    banner.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+    banner.classList.add('hidden');
+  }
+}
+async function mostrarAvisos(){
+  const proximas = await buscarAvisosProximos();
+  const hojeStr = new Date().toISOString().split('T')[0];
+  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const cont = document.getElementById('avisosConteudo');
+  if(!proximas.length){
+    cont.innerHTML = `<div class="empty-state"><div class="emoji">🔔</div><p>Nenhum aviso no momento — nada previsto pros próximos 2 dias.</p></div>`;
+  } else {
+    cont.innerHTML = proximas.map(p=>{
+      const d = new Date(p.data+'T00:00:00');
+      const ehHoje = p.data === hojeStr;
+      return `<div class="card-item" style="margin-bottom:10px">
+        <strong style="color:var(--forest)">${p.icone} ${esc(p.titulo)}</strong><br>
+        <span style="font-size:13px;color:var(--ink-soft)">${ehHoje?'📍 HOJE':'📅 '+d.getDate()+' de '+meses[d.getMonth()]}${p.horario?' às '+p.horario.slice(0,5):''}</span>
+      </div>`;
+    }).join('');
+    cont.innerHTML += `<button class="link-btn" style="margin-top:6px" onclick="desfazerMarcarLido()">↩️ Marcar como não visto de novo</button>`;
+  }
+  abrirModal('modalAvisosOverlay');
+  marcarAvisosComoVistos(proximas.map(p=>p.id));
+  document.getElementById('avisoBadge').classList.add('hidden');
+  document.getElementById('avisoBanner').classList.add('hidden');
+}
+function desfazerMarcarLido(){
+  marcarAvisosComoVistos([]);
+  fecharModal('modalAvisosOverlay');
+  verificarAvisosProximos();
+}
+async function carregarConsultas(){
+  const {data:consultas} = await sb.from('consultas').select('*').order('data_consulta');
+  const cont = document.getElementById('consultasContainer');
+  if(!consultas || !consultas.length){
+    cont.innerHTML = `<div class="empty-state"><div class="emoji">🩺</div><p>Nenhuma consulta ou exame marcado. Toca no + pra adicionar!</p></div>`;
+    return;
+  }
+  const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  const iconesTipo = {consulta:'🩺', exame:'🧪', dentista:'🦷', outro:'📌'};
+  cont.innerHTML = consultas.map(c=>{
+    const d = new Date(c.data_consulta+'T00:00:00');
+    const icone = iconesTipo[c.tipo] || '🩺';
+    return `
+    <div class="card-item consulta-card" style="${c.concluida?'opacity:.55;background:rgba(0,0,0,.02)':''}">
+      <button onclick="marcarConsultaConcluida('${c.id}',${!c.concluida})" title="${c.concluida?'Marcar como pendente':'Marcar como concluído'}" style="background:none;border:2px solid ${c.concluida?'var(--forest)':'var(--line)'};border-radius:50%;width:26px;height:26px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--forest);padding:0">${c.concluida?'✓':''}</button>
+      <div class="consulta-data">
+        <div class="dia">${d.getDate()}</div>
+        <div class="mes">${meses[d.getMonth()]}</div>
+      </div>
+      <div class="consulta-info" style="flex:1">
+        <h3 style="${c.concluida?'text-decoration:line-through':''}">${icone} ${esc(c.especialidade)}</h3>
+        <div class="meta">${c.medico?esc(c.medico)+' • ':''}${c.horario?c.horario.slice(0,5)+' • ':''}${esc(c.local||'')}</div>
+        ${c.observacoes?`<div class="meta" style="margin-top:4px;font-style:italic">${esc(c.observacoes)}</div>`:''}
+        ${c.quer_lembrete?`<div class="meta" style="color:var(--forest);margin-top:4px">🔔 Lembrete ${c.dias_antes_lembrete} dia(s) antes por email</div>`:''}
+        ${c.concluida?'<div class="meta" style="color:var(--forest);font-weight:600;margin-top:4px">✓ Concluído</div>':''}
+      </div>
+      <button onclick="excluirConsulta('${c.id}')" style="background:none;border:none;color:#B23A48;font-size:18px;cursor:pointer;flex-shrink:0">✕</button>
+    </div>`;
+  }).join('');
+}
+async function marcarConsultaConcluida(id, concluida){
+  const {error} = await sb.from('consultas').update({concluida}).eq('id', id);
+  if(error){ console.error('Erro ao marcar consulta:', error); }
+  carregarConsultas();
+  verificarAvisosProximos();
+}
+async function criarConsulta(){
+  const especialidade = document.getElementById('consEspecialidade').value.trim();
+  const data_consulta = document.getElementById('consData').value;
+  if(!especialidade || !data_consulta){ alert('Preencha especialidade/nome e data.'); return; }
+  const hojeStr = new Date().toISOString().split('T')[0];
+  if(data_consulta < hojeStr){ alert('Essa data já passou! Escolhe uma data de hoje em diante.'); return; }
+  const querLembrete = document.getElementById('consQuerLembrete').checked;
+  const {error} = await sb.from('consultas').insert({
+    user_id: me.id, especialidade,
+    tipo: document.getElementById('consTipo').value,
+    medico: document.getElementById('consMedico').value.trim()||null,
+    data_consulta,
+    horario: document.getElementById('consHorario').value||null,
+    local: document.getElementById('consLocal').value.trim()||null,
+    observacoes: document.getElementById('consObs').value.trim()||null,
+    quer_lembrete: querLembrete,
+    dias_antes_lembrete: querLembrete ? parseInt(document.getElementById('consDiasAntes').value) : null,
+    lembrete_enviado: false,
+  });
+  if(error){ console.error('Erro ao criar consulta:', error); alert('Erro ao salvar: '+error.message); return; }
+  ['consEspecialidade','consMedico','consData','consHorario','consLocal','consObs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('consQuerLembrete').checked = false;
+  document.getElementById('consDiasAntesWrap').style.display = 'none';
+  fecharModal('modalConsultaOverlay');
+  carregarConsultas();
+  verificarAvisosProximos();
+}
+async function excluirConsulta(id){
+  if(!confirm('Excluir esta consulta?')) return;
+  await sb.from('consultas').delete().eq('id', id);
+  carregarConsultas();
+  verificarAvisosProximos();
+}
+
+// ===== LEMBRETES =====
+const iconesLembrete = {aniversario:'🎂', viagem:'✈️', conta:'💰', outro:'📌'};
+function alternarCamposLembrete(){
+  const ehAniversario = document.getElementById('lembCategoria').value === 'aniversario';
+  document.getElementById('lembDataNormalWrap').style.display = ehAniversario ? 'none' : 'block';
+  document.getElementById('lembDataAniversarioWrap').style.display = ehAniversario ? 'block' : 'none';
+  document.getElementById('lembRepeteWrap').style.display = ehAniversario ? 'block' : 'none';
+  document.getElementById('lembTituloLabel').textContent = ehAniversario ? 'Nome da pessoa *' : 'Título *';
+  document.getElementById('lembTitulo').placeholder = ehAniversario ? 'Ex: Ross' : 'Ex: Pagar internet, Viagem pra Floripa...';
+}
+function ehAnoBissexto(ano){ return (ano%4===0 && ano%100!==0) || ano%400===0; }
+async function criarLembrete(){
+  const titulo = document.getElementById('lembTitulo').value.trim();
+  const categoria = document.getElementById('lembCategoria').value;
+  const ehAniversario = categoria==='aniversario';
+  let data, repeteAnual, anoNascimento = null;
+
+  if(ehAniversario){
+    const dia = parseInt(document.getElementById('lembDiaAniv').value);
+    let mes = parseInt(document.getElementById('lembMesAniv').value);
+    const anoNascInput = document.getElementById('lembAnoNascimento').value.trim();
+    if(anoNascInput) anoNascimento = parseInt(anoNascInput);
+    if(!titulo){ alert('Preencha o título.'); return; }
+    const hojeD = new Date(); hojeD.setHours(0,0,0,0);
+    let ano = hojeD.getFullYear();
+    let diaAjustado = dia;
+    if(mes===2 && dia===29 && !ehAnoBissexto(ano)) diaAjustado = 28;
+    let candidata = `${ano}-${String(mes).padStart(2,'0')}-${String(diaAjustado).padStart(2,'0')}`;
+    if(candidata < hojeD.toISOString().split('T')[0]){
+      ano++;
+      if(mes===2 && dia===29 && !ehAnoBissexto(ano)) diaAjustado = 28; else diaAjustado = dia;
+      candidata = `${ano}-${String(mes).padStart(2,'0')}-${String(diaAjustado).padStart(2,'0')}`;
+    }
+    data = candidata;
+    repeteAnual = document.getElementById('lembRepeteAnual').checked;
+  } else {
+    data = document.getElementById('lembData').value;
+    if(!titulo || !data){ alert('Preencha título e data.'); return; }
+    repeteAnual = false;
+  }
+
+  const {error} = await sb.from('lembretes').insert({
+    user_id: me.id, titulo, categoria, data,
+    repete_anual: repeteAnual,
+    ano_nascimento: anoNascimento,
+    dias_antes_lembrete: parseInt(document.getElementById('lembDiasAntes').value),
+    lembrete_enviado: false,
+  });
+  if(error){ console.error('Erro ao criar lembrete:', error); alert('Erro ao salvar: '+error.message); return; }
+  ['lembTitulo','lembData','lembAnoNascimento'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('lembCategoria').value = 'aniversario';
+  document.getElementById('lembRepeteAnual').checked = true;
+  alternarCamposLembrete();
+  fecharModal('modalLembreteOverlay');
+  carregarLembretes();
+  verificarAvisosProximos();
+}
+async function carregarLembretes(){
+  const {data:lembretes} = await sb.from('lembretes').select('*').order('data');
+  const cont = document.getElementById('lembretesContainer');
+  if(!lembretes || !lembretes.length){
+    cont.innerHTML = `<div class="empty-state"><div class="emoji">🔔</div><p>Nenhum lembrete ainda. Toca no + pra adicionar!</p></div>`;
+    return;
+  }
+  const hojeStr = new Date().toISOString().split('T')[0];
+  // Lembretes anuais que já passaram: joga pra mesma data no próximo ano e reabre o aviso
+  for(const l of lembretes){
+    if(l.repete_anual && l.data < hojeStr){
+      const [ano, mes, dia] = l.data.split('-');
+      let novoAno = parseInt(ano);
+      let novaData = `${novoAno}-${mes}-${dia}`;
+      while(novaData < hojeStr){ novoAno++; novaData = `${novoAno}-${mes}-${dia}`; }
+      await sb.from('lembretes').update({data:novaData, lembrete_enviado:false}).eq('id', l.id);
+      l.data = novaData;
+    }
+  }
+  lembretes.sort((a,b)=> a.data < b.data ? -1 : 1);
+  const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  cont.innerHTML = lembretes.map(l=>{
+    const d = new Date(l.data+'T00:00:00');
+    const icone = iconesLembrete[l.categoria] || '📌';
+    return `
+    <div class="card-item consulta-card">
+      <div class="consulta-data">
+        <div class="dia">${d.getDate()}</div>
+        <div class="mes">${meses[d.getMonth()]}</div>
+      </div>
+      <div class="consulta-info" style="flex:1">
+        <h3>${icone} ${l.categoria==='aniversario'?'Aniversário de ':''}${esc(l.titulo)}${l.ano_nascimento?' <span style="font-weight:400;color:var(--ink-soft)">('+(d.getFullYear()-l.ano_nascimento)+' anos)</span>':''}</h3>
+        <div class="meta">🔔 Lembrete ${l.dias_antes_lembrete} dia(s) antes por email${l.repete_anual?' • repete todo ano':''}</div>
+      </div>
+      <button onclick="excluirLembrete('${l.id}')" style="background:none;border:none;color:#B23A48;font-size:18px;cursor:pointer;flex-shrink:0">✕</button>
+    </div>`;
+  }).join('');
+}
+async function excluirLembrete(id){
+  if(!confirm('Excluir este lembrete?')) return;
+  await sb.from('lembretes').delete().eq('id', id);
+  carregarLembretes();
+  verificarAvisosProximos();
+}
+
+// ===== RECEITAS =====
+function abrirModalReceita(){
+  document.getElementById('ingredientesContainer').innerHTML='';
+  adicionarCampoIngrediente();
+  abrirModal('modalReceitaOverlay');
+}
+function adicionarCampoIngrediente(){
+  const div = document.createElement('div');
+  div.className = 'ing-row';
+  div.innerHTML = `<input type="text" placeholder="Ex: 2 xícaras de farinha"/><button type="button" onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('ingredientesContainer').appendChild(div);
+}
+let receitasCache = [];
+async function carregarReceitas(){
+  const {data:receitas} = await sb.from('receitas').select('*').order('criado_em',{ascending:false});
+  receitasCache = receitas || [];
+  const cont = document.getElementById('receitasContainer');
+  if(!receitas || !receitas.length){
+    cont.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="emoji">🍲</div><p>Nenhuma receita ainda. Toca no + pra adicionar!</p></div>`;
+    return;
+  }
+  cont.innerHTML = receitas.map(r=>`
+    <div class="receita-card" data-id="${r.id}">
+      <div class="foto">${r.foto_url?`<img src="${r.foto_url}"/>`:'🍲'}</div>
+      <div class="info">
+        <h3>${esc(r.nome)}</h3>
+        <div class="meta">${esc(r.tempo_preparo||'')}${r.porcoes?' • '+r.porcoes+' porções':''}</div>
+      </div>
+    </div>
+  `).join('');
+  cont.querySelectorAll('.receita-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const r = receitasCache.find(rc=>rc.id===card.dataset.id);
+      if(r) abrirVerReceita(r);
+    });
+  });
+}
+async function criarReceita(){
+  const nome = document.getElementById('recNome').value.trim();
+  if(!nome){ alert('Digite o nome da receita.'); return; }
+  const ingredientes = [...document.querySelectorAll('#ingredientesContainer input')].map(i=>i.value.trim()).filter(Boolean);
+  let foto_url = null;
+  const fotoFile = document.getElementById('recFoto').files[0];
+  if(fotoFile){
+    const ext = fotoFile.name.split('.').pop();
+    const path = me.id+'/'+Date.now()+'.'+ext;
+    const {error:upErr} = await sb.storage.from('receitas-fotos').upload(path, fotoFile);
+    if(upErr){ console.error('Erro ao subir foto:', upErr); }
+    else{
+      const {data:pub} = sb.storage.from('receitas-fotos').getPublicUrl(path);
+      foto_url = pub.publicUrl;
+    }
+  }
+  const {error} = await sb.from('receitas').insert({
+    user_id: me.id, nome,
+    tempo_preparo: document.getElementById('recTempo').value.trim()||null,
+    porcoes: document.getElementById('recPorcoes').value ? parseInt(document.getElementById('recPorcoes').value) : null,
+    ingredientes, foto_url,
+    modo_preparo: document.getElementById('recModoPreparo').value.trim()||null,
+  });
+  if(error){ console.error('Erro ao criar receita:', error); alert('Erro ao salvar receita: '+error.message); return; }
+  ['recNome','recTempo','recPorcoes','recModoPreparo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('recFoto').value='';
+  fecharModal('modalReceitaOverlay');
+  carregarReceitas();
+}
+function abrirVerReceita(r){
+  receitaAtualId = r.id;
+  const cont = document.getElementById('verReceitaConteudo');
+  cont.innerHTML = `
+    ${r.foto_url?`<img src="${r.foto_url}" style="width:100%;border-radius:12px;margin-bottom:14px;max-height:220px;object-fit:cover"/>`:''}
+    <h2>${esc(r.nome)}</h2>
+    <div style="color:var(--ink-soft);font-size:13px;margin:6px 0 16px">${esc(r.tempo_preparo||'')}${r.porcoes?' • '+r.porcoes+' porções':''}</div>
+    ${r.ingredientes && r.ingredientes.length?`<h3 style="font-size:15px;color:var(--forest);margin-bottom:8px">Ingredientes</h3><ul style="margin:0 0 16px 18px;font-size:14px;line-height:1.8">${r.ingredientes.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`:''}
+    ${r.modo_preparo?`<h3 style="font-size:15px;color:var(--forest);margin-bottom:8px">Modo de preparo</h3><p style="font-size:14px;line-height:1.7;white-space:pre-wrap">${esc(r.modo_preparo)}</p>`:''}
+  `;
+  abrirModal('modalVerReceitaOverlay');
+}
+async function excluirReceitaAtual(){
+  if(!confirm('Excluir esta receita?')) return;
+  await sb.from('receitas').delete().eq('id', receitaAtualId);
+  fecharModal('modalVerReceitaOverlay');
+  carregarReceitas();
+}
+
+checarSessao();
 </script>
 </body>
 </html>
