@@ -748,15 +748,21 @@ async function processarFotoLista(input){
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
       body: JSON.stringify({imagemBase64: base64}),
     });
-    const resultado = await resp.json();
+    const textoResp = await resp.text();
     document.getElementById('ocrCarregando').style.display = 'none';
-    if(resultado.error){ alert('Não consegui ler a foto: '+resultado.error); return; }
-    if(!resultado.linhas || !resultado.linhas.length){ alert('Não encontrei nenhum texto legível nessa foto. Tenta com mais luz ou mais perto.'); return; }
+    let resultado;
+    try{ resultado = JSON.parse(textoResp); }
+    catch(e){
+      alert('Erro (status '+resp.status+'): '+textoResp.slice(0,300));
+      input.value = '';
+      return;
+    }
+    if(!resp.ok || resultado.error){ alert('Erro (status '+resp.status+'): '+(resultado.error||textoResp.slice(0,300))); input.value=''; return; }
+    if(!resultado.linhas || !resultado.linhas.length){ alert('Não encontrei nenhum texto legível nessa foto. Tenta com mais luz ou mais perto.'); input.value=''; return; }
     mostrarRevisaoOcr(resultado.linhas);
   }catch(e){
     document.getElementById('ocrCarregando').style.display = 'none';
-    console.error('Erro no OCR:', e);
-    alert('Erro ao ler a foto. Tenta de novo.');
+    alert('Erro ao ler a foto: '+(e.message||e));
   }
   input.value = '';
 }
