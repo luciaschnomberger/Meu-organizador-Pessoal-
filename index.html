@@ -218,6 +218,19 @@ nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 1
     <h2 id="verListaTitulo"></h2>
     <div id="itensContainer" style="margin-bottom:16px"></div>
     <div id="itemErr" class="err hidden" style="margin-bottom:8px"></div>
+
+    <input type="file" id="fotoListaInput" accept="image/*" capture="environment" style="display:none" onchange="processarFotoLista(this)"/>
+    <button class="btn ghost" style="margin-bottom:14px" onclick="document.getElementById('fotoListaInput').click()">📷 Ler lista de uma foto</button>
+    <div id="ocrCarregando" style="display:none;text-align:center;padding:14px;color:var(--ink-soft);font-size:14px">Lendo a foto, aguenta aí… ⏳</div>
+    <div id="ocrRevisao" style="display:none;background:#F4F1EA;border-radius:10px;padding:14px;margin-bottom:16px">
+      <p style="font-size:13px;font-weight:600;color:var(--forest);margin-bottom:8px">Confere se leu certo (edita ou apaga o que precisar):</p>
+      <div id="ocrLinhasContainer"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn gold" style="width:auto;padding:10px 18px" onclick="confirmarItensOcr()">✓ Adicionar itens</button>
+        <button class="btn ghost" style="width:auto;padding:10px 18px" onclick="cancelarOcr()">Cancelar</button>
+      </div>
+    </div>
+
     <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">Adicionar item</label>
     <div style="display:flex;gap:8px">
       <input type="text" id="novoItemTexto" placeholder="Ex: Comprar leite" style="margin-bottom:0" onkeydown="if(event.key==='Enter')adicionarItem()"/>
@@ -677,7 +690,99 @@ async function adicionarItem(){
   if(error){ console.error('Erro ao adicionar item:', error); errEl.textContent='Erro ao adicionar: '+error.message; errEl.classList.remove('hidden'); return; }
   document.getElementById('novoItemTexto').value='';
   await carregarItens();
-  await carregarListas();
+}
+
+// ===== LER LISTA DE UMA FOTO (OCR) =====
+function comprimirImagem(arquivo){
+  return new Promise((resolve, reject)=>{
+    const leitorInicial = new FileReader();
+    leitorInicial.onerror = reject;
+    leitorInicial.onload = ()=>{
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = ()=>{
+        const MAX_LADO = 1600; // suficiente pra OCR ler bem, sem pesar demais
+        let {width, height} = img;
+        if(width > MAX_LADO || height > MAX_LADO){
+          if(width > height){ height = Math.round(height * MAX_LADO / width); width = MAX_LADO; }
+          else { width = Math.round(width * MAX_LADO / height); height = MAX_LADO; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+        // Reduz a qualidade até ficar abaixo de ~900KB (limite do plano gratuito é 1MB)
+        let qualidade = 0.8;
+        let resultado = canvas.toDataURL('image/jpeg', qualidade);
+        while(resultado.length * 0.75 > 900*1024 && qualidade > 0.3){
+          qualidade -= 0.1;
+          resultado = canvas.toDataURL('image/jpeg', qualidade);
+        }
+        resolve(resultado);
+      };
+      img.src = leitorInicial.result;
+    };
+    leitorInicial.readAsDataURL(arquivo);
+  });
+}
+async function processarFotoLista(input){
+  const arquivo = input.files[0];
+  if(!arquivo) return;
+  document.getElementById('ocrRevisao').style.display = 'none';
+  document.getElementById('ocrCarregando').style.display = 'block';
+
+  let base64;
+  try{
+    base64 = await comprimirImagem(arquivo);
+  }catch(e){
+    document.getElementById('ocrCarregando').style.display = 'none';
+    alert('Não consegui processar essa foto. Tenta outra.');
+    input.value = '';
+    return;
+  }
+
+  try{
+    const {data:{session}} = await sb.auth.getSession();
+    const resp = await fetch(SUPABASE_URL+'/functions/v1/reconhecer-lista', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+      body: JSON.stringify({imagemBase64: base64}),
+    });
+    const resultado = await resp.json();
+    document.getElementById('ocrCarregando').style.display = 'none';
+    if(resultado.error){ alert('Não consegui ler a foto: '+resultado.error); return; }
+    if(!resultado.linhas || !resultado.linhas.length){ alert('Não encontrei nenhum texto legível nessa foto. Tenta com mais luz ou mais perto.'); return; }
+    mostrarRevisaoOcr(resultado.linhas);
+  }catch(e){
+    document.getElementById('ocrCarregando').style.display = 'none';
+    console.error('Erro no OCR:', e);
+    alert('Erro ao ler a foto. Tenta de novo.');
+  }
+  input.value = '';
+}
+function mostrarRevisaoOcr(linhas){
+  const cont = document.getElementById('ocrLinhasContainer');
+  cont.innerHTML = linhas.map((l,i)=>`
+    <div style="display:flex;gap:6px;margin-bottom:6px" data-linha-idx="${i}">
+      <input type="text" value="${esc(l)}" style="margin-bottom:0;flex:1;font-size:14px;padding:8px 10px"/>
+      <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#B23A48;font-size:16px;cursor:pointer">✕</button>
+    </div>
+  `).join('');
+  document.getElementById('ocrRevisao').style.display = 'block';
+}
+async function confirmarItensOcr(){
+  const linhasEls = document.querySelectorAll('#ocrLinhasContainer > div input');
+  const textos = Array.from(linhasEls).map(inp=>inp.value.trim()).filter(t=>t.length>0);
+  if(!textos.length){ cancelarOcr(); return; }
+  const registros = textos.map(texto=>({lista_id: listaAtualId, texto}));
+  const {error} = await sb.from('itens_lista').insert(registros);
+  if(error){ alert('Erro ao adicionar itens: '+error.message); return; }
+  cancelarOcr();
+  await carregarItens();
+}
+function cancelarOcr(){
+  document.getElementById('ocrRevisao').style.display = 'none';
+  document.getElementById('ocrLinhasContainer').innerHTML = '';
 }
 async function marcarItem(id, feito){
   await sb.from('itens_lista').update({feito}).eq('id', id);
